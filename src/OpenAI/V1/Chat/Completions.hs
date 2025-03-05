@@ -41,13 +41,16 @@ import Prelude hiding (id)
 data InputAudio = InputAudio{ data_ :: Text, format :: AudioFormat }
     deriving stock (Generic, Show)
 
+instance FromJSON InputAudio where
+    parseJSON = genericParseJSON aesonOptions
+
 instance ToJSON InputAudio where
     toJSON = genericToJSON aesonOptions
 
 -- | Image content part
 data ImageURL = ImageURL{ url :: Text, detail :: Maybe (AutoOr Text) }
     deriving stock (Generic, Show)
-    deriving anyclass (ToJSON)
+    deriving anyclass (FromJSON, ToJSON)
 
 -- | A content part
 data Content
@@ -59,13 +62,20 @@ data Content
 instance IsString Content where
     fromString string = Text{ text = fromString string }
 
-instance ToJSON Content where
-    toJSON = genericToJSON aesonOptions
+contentOptions :: Options
+contentOptions =
+    aesonOptions
         { sumEncoding =
             TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
 
         , tagSingleConstructors = True
         }
+
+instance FromJSON Content where
+    parseJSON = genericParseJSON contentOptions
+
+instance ToJSON Content where
+    toJSON = genericToJSON contentOptions
 
 -- | Data about a previous audio response from the model.
 -- [Learn more](https://platform.openai.com/docs/guides/audio)
@@ -161,6 +171,9 @@ instance ToJSON Voice where
 -- | Specifies the output audio format
 data AudioFormat = WAV | MP3 | FLAC | Opus | PCM16
     deriving stock (Generic, Show)
+
+instance FromJSON AudioFormat where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON AudioFormat where
     toJSON = genericToJSON aesonOptions
