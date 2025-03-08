@@ -209,7 +209,7 @@ data RunObject = RunObject
     , instructions :: Maybe Text
     , tools :: Vector Tool
     , metadata :: Map Text Text
-    , usage :: Maybe (Usage (Maybe Void) (Maybe Void))
+    , usage :: Maybe (Usage (Maybe CompletionTokensDetails) (Maybe PromptTokensDetails))
     , temperature :: Maybe Double
     , top_p :: Maybe Double
     , max_prompt_tokens :: Maybe Natural

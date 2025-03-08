@@ -36,4 +36,4 @@ data Usage completionTokensDetails promptTokensDetails = Usage
     } deriving stock (Generic, Show)
 
 instance FromJSON (Usage CompletionTokensDetails PromptTokensDetails)
-instance FromJSON (Usage (Maybe Void) (Maybe Void))
+instance FromJSON (Usage (Maybe CompletionTokensDetails) (Maybe PromptTokensDetails))
