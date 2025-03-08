@@ -12,17 +12,17 @@ import OpenAI.Prelude
 
 -- | Breakdown of tokens used in a completion
 data CompletionTokensDetails = CompletionTokensDetails
-    { accepted_prediction_tokens :: Natural
-    , audio_tokens :: Natural
-    , reasoning_tokens :: Natural
-    , rejected_prediction_tokens :: Natural
+    { accepted_prediction_tokens :: Maybe Natural
+    , audio_tokens :: Maybe Natural
+    , reasoning_tokens :: Maybe Natural
+    , rejected_prediction_tokens :: Maybe Natural
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON)
 
 -- | Breakdown of tokens used in the prompt
 data PromptTokensDetails = PromptTokensDetails
-    { audio_tokens :: Natural
-    , cached_tokens :: Natural
+    { audio_tokens :: Maybe Natural
+    , cached_tokens :: Maybe Natural
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON)
 
