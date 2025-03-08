@@ -105,7 +105,7 @@ data MessageObject = MessageObject
     , object :: Text
     , created_at :: POSIXTime
     , thread_id :: ThreadID
-    , status :: Maybe Status
+    , status :: Status
     , incomplete_details :: Maybe IncompleteDetails
     , completed_at :: Maybe POSIXTime
     , incomplete_at :: Maybe POSIXTime
