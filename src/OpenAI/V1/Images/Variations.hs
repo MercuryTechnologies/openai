@@ -24,6 +24,7 @@ data CreateImageVariation = CreateImageVariation
     , size :: Maybe Text
     , user :: Maybe Text
     } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateImageVariation`
 _CreateImageVariation :: CreateImageVariation

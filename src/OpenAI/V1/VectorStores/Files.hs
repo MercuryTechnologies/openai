@@ -29,7 +29,7 @@ data CreateVectorStoreFile = CreateVectorStoreFile
     { file_id :: FileID
     , chunking_strategy :: Maybe ChunkingStrategy
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateVectorStoreFile`
 _CreateVectorStoreFile :: CreateVectorStoreFile
@@ -48,7 +48,7 @@ data VectorStoreFileObject = VectorStoreFileObject
     , last_error :: Maybe Error
     , chunking_strategy :: ChunkingStrategy
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

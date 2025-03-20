@@ -10,6 +10,9 @@ import OpenAI.Prelude
 data ResponseFormat = URL | B64_JSON
     deriving stock (Generic, Show)
 
+instance FromJSON ResponseFormat where
+    parseJSON = genericParseJSON aesonOptions
+
 instance ToJSON ResponseFormat where
     toJSON = genericToJSON aesonOptions
 

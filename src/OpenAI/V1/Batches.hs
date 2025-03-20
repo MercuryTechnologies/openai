@@ -28,7 +28,7 @@ data CreateBatch = CreateBatch
     , completion_window :: Text
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateBatch`
 _CreateBatch :: CreateBatch
@@ -51,13 +51,16 @@ data Status
 instance FromJSON Status where
     parseJSON = genericParseJSON aesonOptions
 
+instance ToJSON Status where
+    toJSON = genericToJSON aesonOptions
+
 -- | The request counts for different statuses within the batch.
 data Counts = Counts
     { total :: Natural
     , completed :: Natural
     , failed :: Natural
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | The batch object
 data BatchObject = BatchObject
@@ -85,6 +88,9 @@ data BatchObject = BatchObject
 
 instance FromJSON BatchObject where
     parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON BatchObject where
+    toJSON = genericToJSON aesonOptions
 
 -- | Servant API
 type API =

@@ -21,7 +21,7 @@ data CreateModeration = CreateModeration
     { input :: Text
     , model :: Maybe Model
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateModeration`
 _CreateModeration :: CreateModeration
@@ -36,6 +36,9 @@ data InputType = Text | Image
 instance FromJSON InputType where
     parseJSON = genericParseJSON aesonOptions
 
+instance ToJSON InputType where
+    toJSON = genericToJSON aesonOptions
+
 -- | A moderation result
 data Result = Result
     { flagged :: Bool
@@ -45,7 +48,7 @@ data Result = Result
     -- According to the OpenAPI spec the `category_applied_input_types`
     -- field is required but their actual implementation omits this field.
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Represents if a given text input is potentially harmful.
 data Moderation = Moderation
@@ -53,7 +56,7 @@ data Moderation = Moderation
     , model :: Model
     , results :: Vector Result
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

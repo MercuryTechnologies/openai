@@ -20,12 +20,18 @@ import OpenAI.V1.Models (Model)
 data Quality = Standard | HD
     deriving stock (Generic, Show)
 
+instance FromJSON Quality where
+    parseJSON = genericParseJSON aesonOptions
+
 instance ToJSON Quality where
     toJSON = genericToJSON aesonOptions
 
 -- | The style of the generated images
 data Style = Vivid | Natural
     deriving stock (Generic, Show)
+
+instance FromJSON Style where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON Style where
     toJSON = genericToJSON aesonOptions
@@ -53,6 +59,9 @@ _CreateImage = CreateImage
     , style = Nothing
     , user = Nothing
     }
+
+instance FromJSON CreateImage where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON CreateImage where
     toJSON = genericToJSON aesonOptions

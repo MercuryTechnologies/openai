@@ -28,6 +28,7 @@ data CreateImageEdit = CreateImageEdit
     , response_format :: Maybe ResponseFormat
     , user :: Maybe Text
     } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateImageEdit`
 _CreateImageEdit :: CreateImageEdit

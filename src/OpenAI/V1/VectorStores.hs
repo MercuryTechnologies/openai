@@ -44,7 +44,7 @@ data CreateVectorStore = CreateVectorStore
     , chunking_strategy :: Maybe (AutoOr ChunkingStrategy)
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
-      deriving (ToJSON)
+      deriving (FromJSON, ToJSON)
 
 -- | Default `CreateVectorStore`
 _CreateVectorStore :: CreateVectorStore
@@ -61,7 +61,7 @@ data ModifyVectorStore = ModifyVectorStore
     , expires_after :: Maybe ExpiresAfter
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
-      deriving (ToJSON)
+      deriving (FromJSON, ToJSON)
 
 -- | Default `ModifyVectorStore`
 _ModifyVectorStore :: ModifyVectorStore
@@ -78,6 +78,9 @@ data Status = Expired | In_Progress | Completed
 instance FromJSON Status where
     parseJSON = genericParseJSON aesonOptions
 
+instance ToJSON Status where
+    toJSON = genericToJSON aesonOptions
+
 -- | A vector store is a collection of processed files can be used by the
 -- @file_search@ tool.
 data VectorStoreObject = VectorStoreObject
@@ -93,7 +96,7 @@ data VectorStoreObject = VectorStoreObject
     , last_active_at :: Maybe POSIXTime
     , metadata :: Map Text Text
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

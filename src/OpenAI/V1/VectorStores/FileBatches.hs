@@ -28,7 +28,7 @@ data CreateVectorStoreFileBatch = CreateVectorStoreFileBatch
     { file_ids :: Vector FileID
     , chunking_strategy :: Maybe ChunkingStrategy
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateVectorStoreFileBatch`
 _CreateVectorStoreFileBatch :: CreateVectorStoreFileBatch
@@ -45,7 +45,7 @@ data VectorStoreFilesBatchObject = VectorStoreFilesBatchObject
     , status :: Status
     , file_counts :: Maybe FileCounts
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =
