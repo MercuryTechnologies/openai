@@ -21,12 +21,18 @@ import OpenAI.V1.Models (Model)
 data Voice = Alloy | Echo | Fable | Onyx | Nova | Shimmer
     deriving stock (Bounded, Enum, Generic, Show)
 
+instance FromJSON Voice where
+    parseJSON = genericParseJSON aesonOptions
+
 instance ToJSON Voice where
     toJSON = genericToJSON aesonOptions
 
 -- | The format to audio in
 data Format = MP3 | Opus | AAC | FLAC | WAV | PCM
     deriving stock (Bounded, Enum, Generic, Show)
+
+instance FromJSON Format where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON Format where
     toJSON = genericToJSON aesonOptions
@@ -39,7 +45,7 @@ data CreateSpeech = CreateSpeech
     , response_format :: Maybe Format
     , speed :: Maybe Double
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateSpeech`
 _CreateSpeech :: CreateSpeech

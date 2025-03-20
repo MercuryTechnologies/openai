@@ -49,6 +49,9 @@ data CreateAssistant = CreateAssistant
     , response_format :: Maybe (AutoOr ResponseFormat)
     } deriving stock (Generic, Show)
 
+instance FromJSON CreateAssistant where
+    parseJSON = genericParseJSON aesonOptions
+
 instance ToJSON CreateAssistant where
     toJSON = genericToJSON aesonOptions
 
@@ -79,6 +82,9 @@ data ModifyAssistant = ModifyAssistant
     , top_p :: Maybe Double
     , response_format :: Maybe (AutoOr ResponseFormat)
     } deriving stock (Generic, Show)
+
+instance FromJSON ModifyAssistant where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON ModifyAssistant where
     toJSON = genericToJSON aesonOptions
@@ -113,7 +119,7 @@ data AssistantObject = AssistantObject
     , top_p :: Maybe Double
     , response_format :: AutoOr ResponseFormat
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

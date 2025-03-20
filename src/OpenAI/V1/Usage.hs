@@ -17,14 +17,14 @@ data CompletionTokensDetails = CompletionTokensDetails
     , reasoning_tokens :: Maybe Natural
     , rejected_prediction_tokens :: Maybe Natural
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Breakdown of tokens used in the prompt
 data PromptTokensDetails = PromptTokensDetails
     { audio_tokens :: Maybe Natural
     , cached_tokens :: Maybe Natural
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Usage statistics for the completion request
 data Usage completionTokensDetails promptTokensDetails = Usage
@@ -37,3 +37,5 @@ data Usage completionTokensDetails promptTokensDetails = Usage
 
 instance FromJSON (Usage CompletionTokensDetails PromptTokensDetails)
 instance FromJSON (Usage (Maybe CompletionTokensDetails) (Maybe PromptTokensDetails))
+instance ToJSON (Usage CompletionTokensDetails PromptTokensDetails)
+instance ToJSON (Usage (Maybe CompletionTokensDetails) (Maybe PromptTokensDetails))

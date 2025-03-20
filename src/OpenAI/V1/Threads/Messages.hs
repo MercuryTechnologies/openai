@@ -36,6 +36,9 @@ data ModifyMessage = ModifyMessage
     { metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
 
+instance FromJSON ModifyMessage where
+    parseJSON = genericParseJSON aesonOptions
+
 instance ToJSON ModifyMessage where
     toJSON = genericToJSON aesonOptions
 
@@ -52,17 +55,20 @@ data Status = In_Progress | Incomplete | Completed
 instance FromJSON Status where
     parseJSON = genericParseJSON aesonOptions
 
+instance ToJSON Status where
+    toJSON = genericToJSON aesonOptions
+
 -- | On an incomplete message, details about why the message is incomplete.
 data IncompleteDetails = IncompleteDetails
     { reason :: Text
     } deriving (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | File
 data File = File
     { file_id :: FileID
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | An annotation
 data Annotation
@@ -80,20 +86,27 @@ data Annotation
         }
     deriving stock (Generic, Show)
 
-instance FromJSON Annotation where
-    parseJSON = genericParseJSON aesonOptions
+annotationOptions :: Options
+annotationOptions =
+    aesonOptions
         { sumEncoding =
             TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
 
         , tagSingleConstructors = True
         }
 
+instance FromJSON Annotation where
+    parseJSON = genericParseJSON annotationOptions
+
+instance ToJSON Annotation where
+    toJSON = genericToJSON annotationOptions
+
 -- | The text content that is part of a message.
 data TextObject = TextObject
     { value :: Text
     , annotations :: Vector Annotation
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 instance IsString TextObject where
     fromString string =
@@ -116,7 +129,7 @@ data MessageObject = MessageObject
     , attachments :: Maybe (Vector Attachment)
     , metadata :: Map Text Text
     } deriving (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

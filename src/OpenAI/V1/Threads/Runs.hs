@@ -83,6 +83,9 @@ data CreateRun = CreateRun
     , response_format :: Maybe (AutoOr ResponseFormat)
     } deriving stock (Generic, Show)
 
+instance FromJSON CreateRun where
+    parseJSON = genericParseJSON aesonOptions
+
 instance ToJSON CreateRun where
     toJSON = genericToJSON aesonOptions
 
@@ -124,6 +127,9 @@ data CreateThreadAndRun = CreateThreadAndRun
     , response_format :: Maybe (AutoOr ResponseFormat)
     } deriving stock (Generic, Show)
 
+instance FromJSON CreateThreadAndRun where
+    parseJSON = genericParseJSON aesonOptions
+
 instance ToJSON CreateThreadAndRun where
     toJSON = genericToJSON aesonOptions
 
@@ -150,7 +156,7 @@ _CreateThreadAndRun = CreateThreadAndRun
 data SubmitToolOutputs = SubmitToolOutputs
     { tool_calls :: Vector ToolCall
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | The status of the run
 data Status
@@ -168,13 +174,17 @@ data Status
 instance FromJSON Status where
     parseJSON = genericParseJSON aesonOptions
 
+instance ToJSON Status where
+    toJSON = genericToJSON aesonOptions
+
 -- | Details on the action required to continue the run
 data RequiredAction = RequiredAction_Submit_Tool_Outputs
     { submit_tool_outputs :: SubmitToolOutputs
     } deriving stock (Generic, Show)
 
-instance FromJSON RequiredAction where
-    parseJSON = genericParseJSON aesonOptions
+requiredActionOptions :: Options
+requiredActionOptions =
+    aesonOptions
         { sumEncoding =
               TaggedObject{ tagFieldName = "type" }
 
@@ -183,11 +193,17 @@ instance FromJSON RequiredAction where
         , constructorTagModifier = stripPrefix "RequiredAction_"
         }
 
+instance FromJSON RequiredAction where
+    parseJSON = genericParseJSON requiredActionOptions
+
+instance ToJSON RequiredAction where
+    toJSON = genericToJSON requiredActionOptions
+
 -- | Details on why the run is incomplete
 data IncompleteDetails = IncompleteDetails
     { reason :: Text
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Represents an execution run on a thread.
 data RunObject = RunObject
@@ -219,12 +235,15 @@ data RunObject = RunObject
     , parallel_tool_calls :: Bool
     , response_format :: AutoOr ResponseFormat
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Request body for @\/v1\/threads\/:thread_id\/runs\/:run_id@
 data ModifyRun = ModifyRun
     { metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
+
+instance FromJSON ModifyRun where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON ModifyRun where
     toJSON = genericToJSON aesonOptions
@@ -238,12 +257,15 @@ data ToolOutput = ToolOutput
     { tool_call_id :: Maybe Text
     , output :: Text
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Request body for @\/v1\/threads\/:thread_id\/runs\/:run_id\/submit_tool_outputs@
 data SubmitToolOutputsToRun = SubmitToolOutputsToRun
     { tool_outputs :: Vector ToolOutput
     } deriving stock (Generic, Show)
+
+instance FromJSON SubmitToolOutputsToRun where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON SubmitToolOutputsToRun where
     toJSON = genericToJSON aesonOptions

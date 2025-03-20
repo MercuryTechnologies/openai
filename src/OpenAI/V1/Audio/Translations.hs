@@ -22,6 +22,7 @@ data CreateTranslation = CreateTranslation
     , prompt :: Maybe Text
     , temperature :: Maybe Double
     } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
 
 instance ToMultipart Tmp CreateTranslation where
     toMultipart CreateTranslation{ model = Model model, ..} = MultipartData{..}
@@ -51,7 +52,7 @@ _CreateTranslation = CreateTranslation
 data TranslationObject = TranslationObject
     { text :: Text
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

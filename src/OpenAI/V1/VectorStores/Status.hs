@@ -13,6 +13,9 @@ data Status = In_Progress | Completed | Cancelled | Failed
 instance FromJSON Status where
     parseJSON = genericParseJSON aesonOptions
 
+instance ToJSON Status where
+    toJSON = genericToJSON aesonOptions
+
 instance ToHttpApiData Status where
     toUrlPiece In_Progress = "in_progress"
     toUrlPiece Completed = "completed"

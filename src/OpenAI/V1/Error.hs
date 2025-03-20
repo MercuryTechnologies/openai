@@ -17,4 +17,4 @@ data Error = Error
     , param :: Maybe Text
     , line :: Maybe Natural
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)

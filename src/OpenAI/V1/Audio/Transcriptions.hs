@@ -26,6 +26,7 @@ data CreateTranscription = CreateTranscription
     , prompt :: Maybe Text
     , temperature :: Maybe Double
     } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
 
 instance ToMultipart Tmp CreateTranscription where
     toMultipart CreateTranscription{ model = Model model, ..} =
@@ -67,7 +68,7 @@ data Segment = Segment
     , compression_ratio :: Double
     , no_speech_prob :: Double
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Represents a verbose json transcription response returned by model, based
 -- on the provided input.
@@ -77,7 +78,7 @@ data TranscriptionObject = TranscriptionObject
     , text :: Text
     , segments :: Vector Segment
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

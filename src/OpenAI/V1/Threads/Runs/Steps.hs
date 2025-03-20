@@ -43,17 +43,21 @@ data Status = In_Progress | Cancelled | Failed | Completed | Expired
 instance FromJSON Status where
     parseJSON = genericParseJSON aesonOptions
 
+instance ToJSON Status where
+    toJSON = genericToJSON aesonOptions
+
 -- | Code Interpreter image output
 data Image = Image{ file_id :: FileID }
     deriving stock (Generic, Show)
-    deriving anyclass (FromJSON)
+    deriving anyclass (FromJSON, ToJSON)
 
 -- | An output from the Code Interpreter tool call
 data Output = Output_Logs{ logs :: Text } | Output_Image{ image :: Image }
     deriving stock (Generic, Show)
 
-instance FromJSON Output where
-    parseJSON = genericParseJSON aesonOptions
+outputOptions :: Options
+outputOptions =
+    aesonOptions
         { sumEncoding =
             TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
 
@@ -62,19 +66,25 @@ instance FromJSON Output where
         , constructorTagModifier = stripPrefix "Output_"
         }
 
+instance FromJSON Output where
+    parseJSON = genericParseJSON outputOptions
+
+instance ToJSON Output where
+    toJSON = genericToJSON outputOptions
+
 -- | A Code Interpreter tool call
 data CodeInterpreter = CodeInterpreter
     { input :: Text
     , outputs :: Vector Output
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | The ranking options for the file search.
 data RankingOptions = RankingOptions
     { ranker :: Text
     , score_threshold :: Double
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | The content of the result that was found
 data Content = Content
@@ -85,6 +95,9 @@ data Content = Content
 instance FromJSON Content where
     parseJSON = genericParseJSON aesonOptions
 
+instance ToJSON Content where
+    toJSON = genericToJSON aesonOptions
+
 -- | Result of the file search
 data Result = Result
     { file_id :: FileID
@@ -92,14 +105,14 @@ data Result = Result
     , score :: Double
     , content :: Vector Content
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | A File Search tool call
 data FileSearch = FileSearch
     { ranking_options :: RankingOptions
     , results :: Vector Result
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | The definition of the function that was called
 data Function = Function
@@ -107,7 +120,7 @@ data Function = Function
     , arguments :: Text
     , output :: Maybe Text
     } deriving (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | A tool call the run step was involved in
 data ToolCall
@@ -116,8 +129,9 @@ data ToolCall
     | ToolCall_Function { id :: Text, function :: Function }
     deriving stock (Generic, Show)
 
-instance FromJSON ToolCall where
-    parseJSON = genericParseJSON aesonOptions
+toolCallOptions :: Options
+toolCallOptions =
+    aesonOptions
         { sumEncoding =
             TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
 
@@ -126,19 +140,32 @@ instance FromJSON ToolCall where
         , constructorTagModifier = stripPrefix "ToolCall_"
         }
 
+instance FromJSON ToolCall where
+    parseJSON = genericParseJSON toolCallOptions
+
+instance ToJSON ToolCall where
+    toJSON = genericToJSON toolCallOptions
+
 -- | The details of the run step
 data StepDetails
     = Message_Creation{ message_id :: MessageID }
     | Tool_Calls{ tool_calls :: Vector ToolCall }
     deriving stock (Generic, Show)
 
-instance FromJSON StepDetails where
-    parseJSON = genericParseJSON aesonOptions
+stepDetailsOptions :: Options
+stepDetailsOptions =
+    aesonOptions
         { sumEncoding =
             TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
 
         , tagSingleConstructors = True
         }
+
+instance FromJSON StepDetails where
+    parseJSON = genericParseJSON stepDetailsOptions
+
+instance ToJSON StepDetails where
+    toJSON = genericToJSON stepDetailsOptions
 
 -- | Represents a step in execution of a run.
 data RunStepObject = RunStepObject
@@ -158,7 +185,7 @@ data RunStepObject = RunStepObject
     , metadata :: Map Text Text
     , usage :: Maybe (Usage CompletionTokensDetails PromptTokensDetails)
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

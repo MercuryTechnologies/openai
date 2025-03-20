@@ -34,7 +34,7 @@ data Thread = Thread
     , tool_resources :: Maybe ToolResources
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `Thread`
 _Thread :: Thread
@@ -49,6 +49,9 @@ data ModifyThread = ModifyThread
     { tool_resources :: Maybe ToolResources
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
+
+instance FromJSON ModifyThread where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON ModifyThread where
     toJSON = genericToJSON aesonOptions
@@ -68,7 +71,7 @@ data ThreadObject = ThreadObject
     , tool_resources :: Maybe ToolResources
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

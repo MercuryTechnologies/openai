@@ -14,4 +14,4 @@ data FileCounts = FileCounts
     , cancelled :: Natural
     , total :: Natural
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
