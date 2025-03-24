@@ -55,7 +55,7 @@ data FileObject = FileObject
     , object :: Text
     , purpose :: Purpose
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | The intended purpose of the uploaded file.
 data Purpose

@@ -12,4 +12,4 @@ data ImageObject = ImageObject
     , url :: Maybe Text
     , revised_prompt :: Maybe Text
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)

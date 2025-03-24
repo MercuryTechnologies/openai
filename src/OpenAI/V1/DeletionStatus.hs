@@ -12,4 +12,4 @@ data DeletionStatus = DeletionStatus
     , object :: Text
     , deleted :: Bool
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)

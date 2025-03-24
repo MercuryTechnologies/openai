@@ -67,7 +67,7 @@ instance FromJSON Integration where
     parseJSON = genericParseJSON integrationOptions
 
 instance ToJSON Integration where
-    toJSON = genericToJSON integrationOptions-- | CreateFineTuningJob body
+    toJSON = genericToJSON integrationOptions
 
 -- | Request body for @\/v1\/fine_tuning\/jobs@
 data CreateFineTuningJob = CreateFineTuningJob
@@ -79,7 +79,7 @@ data CreateFineTuningJob = CreateFineTuningJob
     , integrations :: Maybe (Vector Integration)
     , seed :: Maybe Integer
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateFineTuningJob`
 _CreateFineTuningJob :: CreateFineTuningJob
@@ -104,6 +104,9 @@ data Status
 instance FromJSON Status where
     parseJSON = genericParseJSON aesonOptions
 
+instance ToJSON Status where
+    toJSON = genericToJSON aesonOptions
+
 -- | The fine_tuning.job object represents a fine-tuning job that has been
 -- created through the API.
 data JobObject = JobObject
@@ -125,7 +128,7 @@ data JobObject = JobObject
     , seed :: Integer
     , estimated_finish :: Maybe POSIXTime
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Log level
 data Level = Info | Warn | Error
@@ -133,6 +136,9 @@ data Level = Info | Warn | Error
 
 instance FromJSON Level where
     parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON Level where
+    toJSON = genericToJSON aesonOptions
 
 -- | Fine-tuning job event object
 data EventObject = EventObject
@@ -142,7 +148,7 @@ data EventObject = EventObject
     , message :: Text
     , object :: Text
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Metrics at the step number during the fine-tuning job.
 data Metrics = Metrics
@@ -154,7 +160,7 @@ data Metrics = Metrics
     , full_valid_loss :: Double
     , full_valid_mean_token_accuracy :: Double
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | The @fine_tuning.job.checkpoint@ object represents a model checkpoint for
 -- a fine-tuning job that is ready to use
@@ -167,7 +173,7 @@ data CheckpointObject = CheckpointObject
     , fine_tuning_job_id :: FineTuningJobID
     , object :: Text
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

@@ -14,3 +14,6 @@ data ListOf a = List{ data_ :: Vector a }
 
 instance FromJSON a => FromJSON (ListOf a) where
     parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON a => ToJSON (ListOf a) where
+    toJSON = genericToJSON aesonOptions

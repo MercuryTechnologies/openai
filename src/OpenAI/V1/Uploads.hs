@@ -33,7 +33,7 @@ data CreateUpload = CreateUpload
     , bytes :: Natural
     , mime_type :: Text
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateUpload`
 _CreateUpload :: CreateUpload
@@ -41,6 +41,13 @@ _CreateUpload = CreateUpload{ }
 
 -- | Request body for @\/v1\/uploads\/:upload_id\/parts@
 data AddUploadPart = AddUploadPart{ data_ :: FilePath }
+    deriving stock (Generic, Show)
+
+instance FromJSON AddUploadPart where
+    parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON AddUploadPart where
+    toJSON = genericToJSON aesonOptions
 
 -- | Default `AddUploadPart`
 _AddUploadPart :: AddUploadPart
@@ -80,6 +87,13 @@ instance ToJSON CompleteUpload where
             CompleteUpload{ md5 = Just "", .. }
         fix x = x
 
+instance FromJSON CompleteUpload where
+    parseJSON = fmap (fmap fix) (genericParseJSON aesonOptions)
+      where
+        fix CompleteUpload{ md5 = Just "", .. } =
+            CompleteUpload{ md5 = Nothing, .. }
+        fix x = x
+
 -- | The status of the Upload
 data Status
     = Pending
@@ -90,6 +104,9 @@ data Status
 
 instance FromJSON Status where
     parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON Status where
+    toJSON = genericToJSON aesonOptions
 
 -- | The Upload object can accept byte chunks in the form of Parts.
 data UploadObject file = UploadObject
@@ -106,6 +123,8 @@ data UploadObject file = UploadObject
 
 instance FromJSON (UploadObject (Maybe Void))
 instance FromJSON (UploadObject FileObject)
+instance ToJSON (UploadObject (Maybe Void))
+instance ToJSON (UploadObject FileObject)
 
 -- | The upload part represents a chunk of bytes we can add to an upload
 -- object
@@ -115,7 +134,7 @@ data PartObject = PartObject
     , upload_id :: UploadID
     , object :: Text
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API

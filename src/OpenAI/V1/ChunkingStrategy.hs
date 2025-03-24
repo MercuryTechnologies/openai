@@ -30,10 +30,8 @@ chunkingStrategyOptions = aesonOptions
     , constructorTagModifier = stripPrefix "ChunkingStrategy_"
     }
 
-instance ToJSON ChunkingStrategy where
-    toJSON = genericToJSON chunkingStrategyOptions
-
 instance FromJSON ChunkingStrategy where
     parseJSON = genericParseJSON chunkingStrategyOptions
 
-
+instance ToJSON ChunkingStrategy where
+    toJSON = genericToJSON chunkingStrategyOptions

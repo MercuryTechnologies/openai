@@ -18,6 +18,9 @@ import OpenAI.V1.Models (Model)
 data EncodingFormat = Float | Base64
     deriving stock (Generic, Show)
 
+instance FromJSON EncodingFormat where
+    parseJSON = genericParseJSON aesonOptions
+
 instance ToJSON EncodingFormat where
     toJSON = genericToJSON aesonOptions
 
@@ -29,7 +32,7 @@ data CreateEmbeddings = CreateEmbeddings
     , dimensions :: Maybe Natural
     , user :: Maybe Text
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default `CreateEmbeddings`
 _CreateEmbeddings :: CreateEmbeddings
@@ -45,7 +48,7 @@ data EmbeddingObject = EmbbeddingObject
     , embedding :: Vector Double
     , object :: Text
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =

@@ -70,9 +70,16 @@ data Message
         }
     deriving stock (Generic, Show)
 
-instance ToJSON Message where
-    toJSON = genericToJSON aesonOptions
+messageOptions :: Options
+messageOptions =
+    aesonOptions
         { sumEncoding =
             TaggedObject{ tagFieldName = "role", contentsFieldName = "" }
         , tagSingleConstructors = True
         }
+
+instance FromJSON Message where
+    parseJSON = genericParseJSON  messageOptions
+
+instance ToJSON Message where
+    toJSON = genericToJSON  messageOptions

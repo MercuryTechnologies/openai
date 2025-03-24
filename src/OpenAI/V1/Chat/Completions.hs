@@ -142,9 +142,16 @@ messageToContent Tool{ content } = content
 data Modality = Modality_Text | Modality_Audio
     deriving stock (Generic, Show)
 
-instance ToJSON Modality where
-    toJSON = genericToJSON aesonOptions
+modalityOptions :: Options
+modalityOptions =
+    aesonOptions
         { constructorTagModifier = stripPrefix "Modality_" }
+
+instance FromJSON Modality where
+    parseJSON = genericParseJSON modalityOptions
+
+instance ToJSON Modality where
+    toJSON = genericToJSON modalityOptions
 
 -- | Configuration for a
 -- [Predicted Output](https://platform.openai.com/docs/guides/predicted-outputs),
@@ -154,17 +161,27 @@ instance ToJSON Modality where
 data Prediction = Content{ content :: Text }
     deriving stock (Generic, Show)
 
-instance ToJSON Prediction where
-    toJSON = genericToJSON aesonOptions
+predictionOptions :: Options
+predictionOptions =
+    aesonOptions
         { sumEncoding =
             TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
 
         , tagSingleConstructors = True
         }
 
+instance FromJSON Prediction where
+    parseJSON = genericParseJSON predictionOptions
+
+instance ToJSON Prediction where
+    toJSON = genericToJSON predictionOptions
+
 -- | The voice the model uses to respond
 data Voice = Ash | Ballad | Coral | Sage | Verse
     deriving stock (Generic, Show)
+
+instance FromJSON Voice where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON Voice where
     toJSON = genericToJSON aesonOptions
@@ -184,17 +201,20 @@ data AudioParameters = AudioParameters
     { voice :: Voice
     , format :: AudioFormat
     } deriving stock (Generic, Show)
-      deriving anyclass (ToJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Specifies the latency tier to use for processing the request
 data ServiceTier = Default
     deriving stock (Generic, Show)
 
+serviceOptions :: Options
+serviceOptions = aesonOptions{ tagSingleConstructors = True }
+
 instance FromJSON ServiceTier where
-    parseJSON = genericParseJSON aesonOptions{ tagSingleConstructors = True }
+    parseJSON = genericParseJSON serviceOptions
 
 instance ToJSON ServiceTier where
-    toJSON = genericToJSON aesonOptions
+    toJSON = genericToJSON serviceOptions
 
 data ReasoningEffort = Low | Medium | High
     deriving stock (Generic, Show)
@@ -233,6 +253,9 @@ data CreateChatCompletion = CreateChatCompletion
     , parallel_tool_calls :: Maybe Bool
     , user :: Maybe Text
     } deriving stock (Generic, Show)
+
+instance FromJSON CreateChatCompletion where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON CreateChatCompletion where
     toJSON = genericToJSON aesonOptions
@@ -274,7 +297,10 @@ data FinishReason
     deriving stock (Generic, Show)
 
 instance FromJSON FinishReason where
-    parseJSON = genericParseJSON messageOptions
+    parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON FinishReason where
+    toJSON = genericToJSON aesonOptions
 
 -- | Message tokens with log probability information
 data Token = Token
@@ -283,14 +309,14 @@ data Token = Token
     , bytes :: Maybe (Vector Word8)
     , top_logprobs :: Maybe (Vector Token)
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Log probability information for the choice
 data LogProbs = LogProbs
     { content :: Maybe (Vector Token)
     , refusal :: Maybe (Vector Token)
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | A chat completion choice
 data Choice = Choice
@@ -299,7 +325,7 @@ data Choice = Choice
     , message :: Message Text
     , logprobs :: Maybe LogProbs
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | ChatCompletion body
 data ChatCompletionObject = ChatCompletionObject
@@ -313,7 +339,7 @@ data ChatCompletionObject = ChatCompletionObject
     , object :: Text
     , usage :: Usage CompletionTokensDetails PromptTokensDetails
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Servant API
 type API =
