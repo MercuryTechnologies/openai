@@ -21,6 +21,7 @@ module OpenAI.V1.Chat.Completions
     , AudioParameters(..)
     , ResponseFormat(..)
     , ServiceTier(..)
+    , ReasoningEffort(..)
     , FinishReason(..)
     , Token(..)
     , LogProbs(..)
@@ -195,6 +196,15 @@ instance FromJSON ServiceTier where
 instance ToJSON ServiceTier where
     toJSON = genericToJSON aesonOptions
 
+data ReasoningEffort = Low | Medium | High
+    deriving stock (Generic, Show)
+
+instance FromJSON ReasoningEffort where
+    parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON ReasoningEffort where
+    toJSON = genericToJSON aesonOptions
+
 -- | Request body for @\/v1\/chat\/completions@
 data CreateChatCompletion = CreateChatCompletion
     { messages :: Vector (Message (Vector Content))
@@ -211,6 +221,7 @@ data CreateChatCompletion = CreateChatCompletion
     , prediction :: Maybe Prediction
     , audio :: Maybe AudioParameters
     , presence_penalty :: Maybe Double
+    , reasoning_effort :: Maybe ReasoningEffort
     , response_format :: Maybe ResponseFormat
     , seed :: Maybe Integer
     , service_tier :: Maybe (AutoOr ServiceTier)
@@ -241,6 +252,7 @@ _CreateChatCompletion = CreateChatCompletion
     , prediction = Nothing
     , audio = Nothing
     , presence_penalty = Nothing
+    , reasoning_effort = Nothing
     , response_format = Nothing
     , seed = Nothing
     , service_tier = Nothing
@@ -295,6 +307,7 @@ data ChatCompletionObject = ChatCompletionObject
     , choices :: Vector Choice
     , created :: POSIXTime
     , model :: Model
+    , reasoning_effort :: Maybe ReasoningEffort
     , service_tier :: Maybe ServiceTier
     , system_fingerprint :: Text
     , object :: Text

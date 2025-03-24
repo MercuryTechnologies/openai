@@ -89,7 +89,7 @@ main = do
 
     let user = "openai Haskell package"
     let chatModel = "gpt-4o-mini"
-
+    let reasoningModel = "o3-mini"
     let Methods{..} = V1.makeMethods clientEnv (Text.pack key)
 
     -- Test each format to make sure we're handling each possible content type
@@ -153,6 +153,42 @@ main = do
                     , prediction = Nothing
                     , audio = Nothing
                     , presence_penalty = Nothing
+                    , reasoning_effort = Nothing
+                    , response_format = Nothing
+                    , seed = Nothing
+                    , service_tier = Nothing
+                    , stop = Nothing
+                    , temperature = Nothing
+                    , top_p = Nothing
+                    , tools = Nothing
+                    , tool_choice = Nothing
+                    , parallel_tool_calls = Nothing
+                    , user = Nothing
+                    }
+
+                return ()
+
+    let completionsMinimalReasoningTest =
+            HUnit.testCase "Create chat completion reasoning model - minimal" do
+                _ <- createChatCompletion CreateChatCompletion
+                    { messages =
+                        [ Completions.User
+                            { content = [ "Hello, world!" ], name = Nothing }
+                        ]
+                    , model = reasoningModel
+                    , store = Nothing
+                    , metadata = Nothing
+                    , frequency_penalty = Nothing
+                    , logit_bias = Nothing
+                    , logprobs = Nothing
+                    , top_logprobs = Nothing
+                    , max_completion_tokens = Nothing
+                    , n = Nothing
+                    , modalities = Nothing
+                    , prediction = Nothing
+                    , audio = Nothing
+                    , presence_penalty = Nothing
+                    , reasoning_effort = Just Completions.Low
                     , response_format = Nothing
                     , seed = Nothing
                     , service_tier = Nothing
@@ -208,6 +244,7 @@ main = do
                     , prediction = Nothing
                     , audio = Nothing
                     , presence_penalty = Just 0
+                    , reasoning_effort = Nothing
                     , response_format = Just Completions.ResponseFormat_Text
                     , seed = Just 0
                     , service_tier = Just Auto
@@ -632,6 +669,7 @@ main = do
             <>  [ transcriptionTest
                 , translationTest
                 , completionsMinimalTest
+                , completionsMinimalReasoningTest
                 , completionsMaximalTest
                 , embeddingsTest
                 , fineTuningTest
