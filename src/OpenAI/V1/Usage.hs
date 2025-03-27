@@ -31,8 +31,8 @@ data Usage completionTokensDetails promptTokensDetails = Usage
     { completion_tokens :: Natural
     , prompt_tokens :: Natural
     , total_tokens :: Natural
-    , completion_tokens_details :: completionTokensDetails
-    , prompt_tokens_details :: promptTokensDetails
+    , completion_tokens_details :: Maybe completionTokensDetails
+    , prompt_tokens_details :: Maybe promptTokensDetails
     } deriving stock (Generic, Show)
 
 instance FromJSON (Usage CompletionTokensDetails PromptTokensDetails)
