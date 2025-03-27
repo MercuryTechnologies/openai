@@ -335,7 +335,7 @@ data ChatCompletionObject = ChatCompletionObject
     , model :: Model
     , reasoning_effort :: Maybe ReasoningEffort
     , service_tier :: Maybe ServiceTier
-    , system_fingerprint :: Text
+    , system_fingerprint :: Maybe Text
     , object :: Text
     , usage :: Usage CompletionTokensDetails PromptTokensDetails
     } deriving stock (Generic, Show)
