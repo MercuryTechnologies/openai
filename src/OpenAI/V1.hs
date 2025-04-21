@@ -42,6 +42,7 @@ module OpenAI.V1
     ( -- * Methods
       getClientEnv
     , makeMethods
+    , setExtraHeaders
     , Methods(..)
 
       -- * Servant
@@ -67,7 +68,12 @@ import OpenAI.V1.Moderations (CreateModeration, Moderation)
 import OpenAI.V1.Order (Order)
 import OpenAI.V1.Threads (Thread, ThreadID, ModifyThread, ThreadObject)
 import OpenAI.V1.Threads.Runs.Steps (RunStepObject(..), StepID)
-import Servant.Client (ClientEnv)
+-- We import the *type* of 'ClientEnv' (with its record fields) from
+-- 'Servant.Client' so that we can update the 'makeClientRequest' field in
+-- `setExtraHeaders`.  We still keep a qualified import for utility
+-- functions such as `parseBaseUrl` and `mkClientEnv`.
+
+import Network.HTTP.Types.Header (RequestHeaders)
 import Servant.Multipart.Client ()
 
 import OpenAI.V1.Assistants
@@ -123,6 +129,7 @@ import OpenAI.V1.VectorStores.FileBatches
 import qualified Control.Exception as Exception
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client.TLS as TLS
+import qualified Network.HTTP.Client as HTTP
 import qualified OpenAI.V1.Assistants as Assistants
 import qualified OpenAI.V1.Audio as Audio
 import qualified OpenAI.V1.Batches as Batches
@@ -142,6 +149,7 @@ import qualified OpenAI.V1.VectorStores as VectorStores
 import qualified OpenAI.V1.VectorStores.Files as VectorStores.Files
 import qualified OpenAI.V1.VectorStores.FileBatches as VectorStores.FileBatches
 import qualified OpenAI.V1.VectorStores.Status as VectorStores.Status
+import Servant.Client (ClientEnv(..))
 import qualified Servant.Client as Client
 
 -- | Convenient utility to get a `ClientEnv` for the most common use case
@@ -153,6 +161,29 @@ getClientEnv baseUrlText = do
     baseUrl <- Client.parseBaseUrl (Text.unpack baseUrlText)
     manager <- TLS.newTlsManager
     pure (Client.mkClientEnv manager baseUrl)
+
+-- | Augment a 'ClientEnv' so that every outgoing HTTP request includes the
+-- given headers.
+--
+-- This is useful for custom tracing / billing headers such as
+--
+-- > setExtraHeaders [("x-bt-parent", "project_id:abc123")]
+--
+-- You can pipe the modified environment straight into 'makeMethods':
+--
+-- > env  <- getClientEnv "https://api.openai.com"
+-- > let env' = setExtraHeaders extra env
+-- > let Methods{..} = makeMethods env' token
+--
+-- The helper does not mutate the existing environment; instead it returns a
+-- new copy with an amended 'makeClientRequest' callback.
+setExtraHeaders :: RequestHeaders -> ClientEnv -> ClientEnv
+setExtraHeaders extra env@ClientEnv{ makeClientRequest = oldMk } =
+    env { makeClientRequest = newMk }
+  where
+    newMk base reqF = do
+        req' <- oldMk base reqF
+        pure req' { HTTP.requestHeaders = extra ++ HTTP.requestHeaders req' }
 
 -- | Get a record of API methods after providing an API token
 makeMethods
