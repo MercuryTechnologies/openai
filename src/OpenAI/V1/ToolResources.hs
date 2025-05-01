@@ -34,7 +34,10 @@ data FileSearchResources = FileSearchResources
     { vector_store_ids :: Maybe (Vector FileID)
     , vector_stores :: Maybe (Vector VectorStore)
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON, ToJSON)
+      deriving anyclass (FromJSON)
+
+instance ToJSON FileSearchResources where
+    toJSON = genericToJSON aesonOptions
 
 -- | A set of resources that are used by the assistant's tools
 data ToolResources = ToolResources
