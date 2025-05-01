@@ -28,6 +28,7 @@ library
                       , containers
                       , filepath
                       , http-api-data
+                      , http-client
                       , http-client-tls
                       , servant
                       , servant-multipart-api

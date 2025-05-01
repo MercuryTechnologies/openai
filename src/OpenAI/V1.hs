@@ -122,6 +122,7 @@ import OpenAI.V1.VectorStores.FileBatches
 
 import qualified Control.Exception as Exception
 import qualified Data.Text as Text
+import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
 import qualified OpenAI.V1.Assistants as Assistants
 import qualified OpenAI.V1.Audio as Audio
@@ -151,7 +152,14 @@ getClientEnv
     -> IO ClientEnv
 getClientEnv baseUrlText = do
     baseUrl <- Client.parseBaseUrl (Text.unpack baseUrlText)
-    manager <- TLS.newTlsManager
+
+    let managerSettings = TLS.tlsManagerSettings
+            { HTTP.Client.managerResponseTimeout =
+                HTTP.Client.responseTimeoutNone
+            }
+
+    manager <- TLS.newTlsManagerWith managerSettings
+
     pure (Client.mkClientEnv manager baseUrl)
 
 -- | Get a record of API methods after providing an API token
