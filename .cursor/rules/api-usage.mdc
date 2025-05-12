@@ -46,7 +46,7 @@ let methods = makeMethods clientEnv (Text.pack apiKey)
 API errors are thrown as exceptions. You should use standard Haskell exception handling mechanisms like `try` or `catch` to handle them:
 
 ```haskell
-result <- try $ createChatCompletion params
+result <- try (createChatCompletion params)
 case result of
     Left err -> handleError err
     Right response -> processResponse response
