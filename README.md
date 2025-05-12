@@ -101,7 +101,7 @@ export OPENAI_KEY="your-openai-api-key"
 direnv allow
 ```
 
-The API key is needed for all operations with the OpenAI API.
+The API key is needed for running the test suite and example program.
 
 ## Testing
 
