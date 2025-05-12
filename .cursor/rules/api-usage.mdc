@@ -1,0 +1,53 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# API Usage Guide
+
+## Basic Usage Pattern
+
+The library follows a consistent pattern for API usage:
+
+1. Create a `ClientEnv` using `getClientEnv`
+2. Create a `Methods` record using `makeMethods`
+3. Extract the desired method from the `Methods` record
+4. Call the method with appropriate parameters
+
+Example from [openai-example/Main.hs](mdc:openai-example/Main.hs):
+
+```haskell
+-- Get API key from environment
+key <- Environment.getEnv "OPENAI_KEY"
+
+-- Create client environment
+clientEnv <- getClientEnv "https://api.openai.com"
+
+-- Create methods record with authentication
+let Methods{ createChatCompletion } = makeMethods clientEnv (Text.pack key)
+
+-- Call API method
+ChatCompletionObject{ choices } <- createChatCompletion _CreateChatCompletion
+    { messages = [ User{ content = [ Text{ text } ], name = Nothing } ]
+    , model = "gpt-4o-mini"
+    }
+```
+
+## Authentication
+
+All API calls require an OpenAI API key, which should be provided when creating the `Methods` record:
+
+```haskell
+let methods = makeMethods clientEnv (Text.pack apiKey)
+```
+
+## Error Handling
+
+API errors are thrown as exceptions. You should use standard Haskell exception handling mechanisms like `try` or `catch` to handle them:
+
+```haskell
+result <- try $ createChatCompletion params
+case result of
+    Left err -> handleError err
+    Right response -> processResponse response
+```

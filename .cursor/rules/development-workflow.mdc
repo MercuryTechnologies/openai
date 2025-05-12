@@ -1,0 +1,45 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Development Workflow
+
+This project uses Nix with flakes for development environment setup. The flake configuration is in [flake.nix](mdc:flake.nix).
+
+## Development Environment Setup
+
+1. Ensure you have Nix with flakes enabled
+2. Use direnv to automatically load the development environment:
+
+```bash
+# Enable direnv hook in your shell
+eval "$(direnv hook bash)" # or zsh, fish, etc.
+
+# Enter the project directory (direnv will automatically load the environment)
+cd openai
+```
+
+## Testing
+
+The test suite is in the `tasty/` directory. Run tests with:
+
+```bash
+cabal test
+```
+
+Test data is located in `tasty/data/`.
+
+## Adding New OpenAI API Endpoints
+
+When adding a new OpenAI API endpoint:
+
+1. Create a new module in `src/OpenAI/V1/` for the endpoint
+2. Define the request and response types
+3. Add the endpoint to the Servant API in [src/OpenAI/V1.hs](mdc:src/OpenAI/V1.hs)
+4. Add the corresponding method to the `Methods` record
+5. Add tests in the `tasty/` directory
+
+## Documentation
+
+Keep documentation in module headers up to date. Use Haddock syntax for documenting functions, types, and modules.

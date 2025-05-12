@@ -1,0 +1,58 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# OpenAI API Endpoints
+
+This library provides access to the following OpenAI API endpoints:
+
+## Chat Completions
+
+- Module: [OpenAI.V1.Chat.Completions](mdc:src/OpenAI/V1/Chat/Completions.hs)
+- Method: `createChatCompletion`
+- Creates a completion for a chat conversation
+
+## Models
+
+- Module: [OpenAI.V1.Models](mdc:src/OpenAI/V1/Models.hs)
+- Methods: `listModels`, `retrieveModel`, `deleteModel`
+- Lists, retrieves, and deletes models
+
+## Images
+
+- Module: [OpenAI.V1.Images](mdc:src/OpenAI/V1/Images.hs)
+- Methods: `createImage`, `createImageEdit`, `createImageVariation`
+- Generates, edits, and creates variations of images
+
+## Embeddings
+
+- Module: [OpenAI.V1.Embeddings](mdc:src/OpenAI/V1/Embeddings.hs)
+- Method: `createEmbeddings`
+- Creates embeddings for input text
+
+## Files
+
+- Module: [OpenAI.V1.Files](mdc:src/OpenAI/V1/Files.hs)
+- Methods: `uploadFile`, `listFiles`, `retrieveFile`, `deleteFile`, `retrieveFileContent`
+- Manages files used for fine-tuning and other purposes
+
+## Audio
+
+- Module: [OpenAI.V1.Audio](mdc:src/OpenAI/V1/Audio.hs)
+- Methods: `createSpeech`, `createTranscription`, `createTranslation`
+- Handles text-to-speech, transcription, and translation
+
+## Fine-tuning
+
+- Module: [OpenAI.V1.FineTuning.Jobs](mdc:src/OpenAI/V1/FineTuning/Jobs.hs)
+- Methods: `createFineTuningJob`, `listFineTuningJobs`, etc.
+- Manages fine-tuning jobs
+
+## Assistants, Threads, and Runs
+
+- Modules: `OpenAI.V1.Assistants`, `OpenAI.V1.Threads`, `OpenAI.V1.Threads.Runs`
+- Methods: Various CRUD operations for assistants, threads, and runs
+- Implements the assistants API for complex multi-turn conversations
+
+Additional endpoints are available for moderations, vector stores, and other OpenAI services. Refer to the `Methods` record in [src/OpenAI/V1.hs](mdc:src/OpenAI/V1.hs) for a complete list.

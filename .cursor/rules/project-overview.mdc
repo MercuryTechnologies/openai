@@ -1,0 +1,25 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Project Overview
+
+This library provides Haskell bindings to the OpenAI API using the Servant framework. It offers a type-safe interface for interacting with various OpenAI endpoints.
+
+## Main Components
+
+- [src/OpenAI/V1.hs](mdc:src/OpenAI/V1.hs) - Main entry point for the library, exports the Methods record and utility functions
+- [openai-example/Main.hs](mdc:openai-example/Main.hs) - Example application demonstrating basic usage
+
+## Project Structure
+
+- `src/OpenAI/V1/` - Contains modules for each OpenAI API endpoint
+- `openai-example/` - Example application showing library usage
+- `tasty/` - Test suite
+
+## Key Features
+
+- Type-safe API with proper Haskell data types
+- Support for all OpenAI API endpoints
+- Convenient helper functions for authentication and environment setup

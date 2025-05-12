@@ -2,7 +2,7 @@
 
 This provides a binding to OpenAI's API using `servant`
 
-Example usage:
+## Example usage
 
 ```haskell
 {-# LANGUAGE DuplicateRecordFields #-}
@@ -38,4 +38,87 @@ main = do
     let display Choice{ message } = Text.IO.putStrLn (messageToContent message)
 
     traverse_ display choices
+```
+
+## Setup
+
+### Using Nix with Flakes (Recommended)
+
+This project uses Nix with flakes for development environment setup.
+
+1. Ensure you have Nix with flakes enabled
+2. Copy the sample environment file and configure your OpenAI API key:
+
+```bash
+# Copy the sample environment file
+cp .envrc.sample .envrc
+```
+
+3. Edit the `.envrc` file and replace the placeholder API key with your actual key
+
+4. Use direnv to automatically load the development environment:
+
+```bash
+# Install direnv if you haven't already
+# macOS: brew install direnv
+# Linux: your-package-manager install direnv
+
+# Enable direnv hook in your shell
+eval "$(direnv hook bash)" # or zsh, fish, etc.
+
+# Clone the repository and enter the directory
+git clone https://github.com/MercuryTechnologies/openai.git
+cd openai
+
+# Allow direnv (this will automatically load the environment)
+direnv allow
+```
+
+### Manual Setup
+
+Without Nix:
+
+```bash
+# Clone the repository
+git clone https://github.com/MercuryTechnologies/openai.git
+cd openai
+
+# Build with cabal
+cabal build
+```
+
+## Environment Variables
+
+Set your OpenAI API key as an environment variable:
+
+```bash
+# Option 1: Set directly in your shell
+export OPENAI_KEY="your-openai-api-key"
+
+# Option 2: Using .envrc with direnv (recommended)
+cp .envrc.sample .envrc
+# Edit .envrc to add your API key
+direnv allow
+```
+
+The API key is needed for all operations with the OpenAI API.
+
+## Testing
+
+Run the test suite:
+
+```bash
+cabal test
+```
+
+The test suite is in the `tasty/` directory with test data located in `tasty/data/`.
+
+## Running the Example
+
+```bash
+# Make sure your API key is set (either via .envrc or export)
+# If using direnv with proper .envrc setup, this happens automatically
+
+# Build and run the example
+cabal run openai-example
 ```

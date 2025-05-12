@@ -1,0 +1,50 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Code Conventions
+
+## Language Extensions
+
+The codebase consistently uses the following GHC language extensions:
+
+```haskell
+DataKinds
+DeriveAnyClass
+DeriveGeneric
+DerivingStrategies
+DuplicateRecordFields
+FlexibleInstances
+GeneralizedNewtypeDeriving
+OverloadedLists
+OverloadedStrings
+RecordWildCards
+MultiParamTypeClasses
+NamedFieldPuns
+TypeApplications
+TypeOperators
+ViewPatterns
+```
+
+These extensions are enabled in [openai.cabal](mdc:openai.cabal) for the entire library.
+
+## Imports
+
+Imports should be organized in the following order:
+1. Import modules from base
+2. Import modules from external libraries
+3. Import modules from this library
+4. Qualified imports with qualified prefix
+
+## Naming Conventions
+
+- Module names use upper camel case (e.g., `OpenAI.V1.Chat.Completions`)
+- Type names use upper camel case (e.g., `ChatCompletionObject`)
+- Function names use lower camel case (e.g., `createChatCompletion`)
+- Record field names use lower camel case
+- Avoid abbreviations in names when possible
+
+## API Structure
+
+OpenAI endpoints are organized into modules corresponding to their API paths, with operations exposed through the `Methods` record in [src/OpenAI/V1.hs](mdc:src/OpenAI/V1.hs).
