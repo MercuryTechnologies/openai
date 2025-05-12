@@ -96,7 +96,7 @@ Set your OpenAI API key as an environment variable:
 export OPENAI_KEY="your-openai-api-key"
 
 # Option 2: Using .envrc with direnv (recommended)
-cp .envrc.sample .envrc
+(umask 077; cp .envrc.sample .envrc)
 # Edit .envrc to add your API key
 direnv allow
 ```
