@@ -32,10 +32,8 @@ These extensions are enabled in [openai.cabal](mdc:openai.cabal) for the entire 
 ## Imports
 
 Imports should be organized in the following order:
-1. Import modules from base
-2. Import modules from external libraries
-3. Import modules from this library
-4. Qualified imports with qualified prefix
+1. Unqualified imports, sorted alphabetically
+2. Qualified imports, sorted alphabetically, with a qualifier comprising complete words and not just letters (e.g. `import qualified Data.Vector as Vector`)
 
 ## Naming Conventions
 
