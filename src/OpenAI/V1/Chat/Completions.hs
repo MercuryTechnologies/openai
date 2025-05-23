@@ -22,6 +22,9 @@ module OpenAI.V1.Chat.Completions
     , ResponseFormat(..)
     , ServiceTier(..)
     , ReasoningEffort(..)
+    , SearchContextSize(..)
+    , UserLocation(..)
+    , WebSearchOptions(..)
     , FinishReason(..)
     , Token(..)
     , LogProbs(..)
@@ -216,14 +219,72 @@ instance FromJSON ServiceTier where
 instance ToJSON ServiceTier where
     toJSON = genericToJSON serviceOptions
 
-data ReasoningEffort = Low | Medium | High
+-- | Constrains effort on reasoning for reasoning models
+data ReasoningEffort
+    = ReasoningEffort_Low
+    | ReasoningEffort_Medium
+    | ReasoningEffort_High
     deriving stock (Generic, Show)
 
+reasoningEffortOptions :: Options
+reasoningEffortOptions =
+    aesonOptions
+        { constructorTagModifier = stripPrefix "ReasoningEffort_" }
+
 instance FromJSON ReasoningEffort where
-    parseJSON = genericParseJSON aesonOptions
+    parseJSON = genericParseJSON reasoningEffortOptions
 
 instance ToJSON ReasoningEffort where
-    toJSON = genericToJSON aesonOptions
+    toJSON = genericToJSON reasoningEffortOptions
+
+-- | High level guidance for the amount of context window space to use for the
+-- search
+data SearchContextSize
+    = SearchContextSize_Low
+    | SearchContextSize_Medium
+    | SearchContextSize_High
+    deriving stock (Generic, Show)
+
+instance FromJSON SearchContextSize where
+    parseJSON = genericParseJSON searchContextSizeOptions
+
+instance ToJSON SearchContextSize where
+    toJSON = genericToJSON searchContextSizeOptions
+
+-- | Approximate location parameters for the search
+data UserLocation = Approximate
+    { city :: Maybe Text
+    , country :: Maybe Text
+    , region :: Maybe Text
+    , timezone :: Maybe Text
+    } deriving stock (Generic, Show)
+
+instance FromJSON UserLocation where
+    parseJSON = genericParseJSON userLocationOptions
+
+instance ToJSON UserLocation where
+    toJSON = genericToJSON userLocationOptions
+
+userLocationOptions :: Options
+userLocationOptions =
+    aesonOptions
+        { sumEncoding =
+            TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+
+        , tagSingleConstructors = True
+        }
+
+searchContextSizeOptions :: Options
+searchContextSizeOptions =
+    aesonOptions
+        { constructorTagModifier = stripPrefix "SearchContextSize_" }
+
+-- | Search the web for relevant results to use in a response
+data WebSearchOptions = WebSearchOptions
+    { search_context_size :: Maybe SearchContextSize
+    , user_location :: Maybe UserLocation
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Request body for @\/v1\/chat\/completions@
 data CreateChatCompletion = CreateChatCompletion
@@ -252,6 +313,7 @@ data CreateChatCompletion = CreateChatCompletion
     , tool_choice :: Maybe ToolChoice
     , parallel_tool_calls :: Maybe Bool
     , user :: Maybe Text
+    , web_search_options :: Maybe WebSearchOptions
     } deriving stock (Generic, Show)
 
 instance FromJSON CreateChatCompletion where
@@ -286,6 +348,7 @@ _CreateChatCompletion = CreateChatCompletion
     , tool_choice = Nothing
     , parallel_tool_calls = Nothing
     , user = Nothing
+    , web_search_options = Nothing
     }
 
 -- | The reason the model stopped generating tokens
