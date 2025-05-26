@@ -42,8 +42,9 @@ data CreateSpeech = CreateSpeech
     { model :: Model -- ^ Note that only [TTS models](https://platform.openai.com/docs/models#tts) support speech synthesis.
     , input :: Text
     , voice :: Voice
-    , response_format :: Maybe Format
-    , speed :: Maybe Double
+    , instructions :: Maybe Text -- ^ Instructions for the model to follow when generating the audio.
+    , response_format :: Maybe Format -- ^ Uses 'MP3' if not specified.
+    , speed :: Maybe Double -- ^ Defaults to 1.0 (normal speed). Should be between 0.25 and 4.0.
     } deriving stock (Generic, Show)
 
 instance ToJSON CreateSpeech where
@@ -55,7 +56,8 @@ instance FromJSON CreateSpeech where
 -- | Default `CreateSpeech`
 _CreateSpeech :: CreateSpeech
 _CreateSpeech = CreateSpeech
-    { response_format = Nothing
+    { instructions = Nothing
+    , response_format = Nothing
     , speed = Nothing
     }
 
