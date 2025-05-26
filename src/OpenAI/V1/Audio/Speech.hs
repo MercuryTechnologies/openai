@@ -45,7 +45,12 @@ data CreateSpeech = CreateSpeech
     , response_format :: Maybe Format
     , speed :: Maybe Double
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON, ToJSON)
+
+instance ToJSON CreateSpeech where
+    toJSON = genericToJSON aesonOptions
+
+instance FromJSON CreateSpeech where
+    parseJSON = genericParseJSON aesonOptions
 
 -- | Default `CreateSpeech`
 _CreateSpeech :: CreateSpeech
