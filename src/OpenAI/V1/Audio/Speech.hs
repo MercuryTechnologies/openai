@@ -18,7 +18,7 @@ import OpenAI.V1.Models (Model)
 --
 -- Previews of the voices are available in the
 -- [Text to speech guide](https://platform.openai.com/docs/guides/text-to-speech#voice-options).
-data Voice = Alloy | Echo | Fable | Onyx | Nova | Shimmer
+data Voice = Alloy | Ash | Ballad | Coral | Echo | Fable | Nova | Onyx |  Sage | Shimmer
     deriving stock (Bounded, Enum, Generic, Show)
 
 instance FromJSON Voice where
@@ -39,7 +39,7 @@ instance ToJSON Format where
 
 -- | Request body for @\/v1\/audio\/speech@
 data CreateSpeech = CreateSpeech
-    { model :: Model
+    { model :: Model -- ^ Note that only [TTS models](https://platform.openai.com/docs/models#tts) support speech synthesis.
     , input :: Text
     , voice :: Voice
     , response_format :: Maybe Format
