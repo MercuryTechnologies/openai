@@ -164,6 +164,7 @@ main = do
                     , tool_choice = Nothing
                     , parallel_tool_calls = Nothing
                     , user = Nothing
+                    , web_search_options = Nothing
                     }
 
                 return ()
@@ -188,7 +189,7 @@ main = do
                     , prediction = Nothing
                     , audio = Nothing
                     , presence_penalty = Nothing
-                    , reasoning_effort = Just Completions.Low
+                    , reasoning_effort = Just Completions.ReasoningEffort_Low
                     , response_format = Nothing
                     , seed = Nothing
                     , service_tier = Nothing
@@ -199,6 +200,7 @@ main = do
                     , tool_choice = Nothing
                     , parallel_tool_calls = Nothing
                     , user = Nothing
+                    , web_search_options = Nothing
                     }
 
                 return ()
@@ -265,6 +267,7 @@ main = do
                     , tool_choice = Just ToolChoiceAuto
                     , parallel_tool_calls = Just True
                     , user = Just user
+                    , web_search_options = Nothing
                     }
 
                 return ()
