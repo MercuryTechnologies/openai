@@ -4,7 +4,6 @@
 {-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE TypeApplications      #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -90,6 +89,7 @@ main = do
     let user = "openai Haskell package"
     let chatModel = "gpt-4o-mini"
     let reasoningModel = "o3-mini"
+    let ttsModel = "tts-1"
     let Methods{..} = V1.makeMethods clientEnv (Text.pack key)
 
     -- Test each format to make sure we're handling each possible content type
@@ -97,7 +97,7 @@ main = do
     let speechTest format =
             HUnit.testCase ("Create speech - " <> show format) do
                 _ <- createSpeech _CreateSpeech
-                    { model = "tts-1"
+                    { model = ttsModel
                     , input = "Hello, world!"
                     , voice = Nova
                     , response_format = Just format
@@ -106,7 +106,17 @@ main = do
 
                 return ()
 
-    let speechTests = do
+    let speechTestDefaults =
+            HUnit.testCase "Create speech - defaults" do
+                _ <- createSpeech _CreateSpeech
+                    { model = ttsModel
+                    , input = "Hello, world!"
+                    , voice = Alloy
+                    }
+
+                return ()
+
+    let speechTests = speechTestDefaults : do
             format <- [ minBound .. maxBound ]
             return (speechTest format)
 
@@ -164,6 +174,7 @@ main = do
                     , tool_choice = Nothing
                     , parallel_tool_calls = Nothing
                     , user = Nothing
+                    , web_search_options = Nothing
                     }
 
                 return ()
@@ -188,7 +199,7 @@ main = do
                     , prediction = Nothing
                     , audio = Nothing
                     , presence_penalty = Nothing
-                    , reasoning_effort = Just Completions.Low
+                    , reasoning_effort = Just Completions.ReasoningEffort_Low
                     , response_format = Nothing
                     , seed = Nothing
                     , service_tier = Nothing
@@ -199,6 +210,7 @@ main = do
                     , tool_choice = Nothing
                     , parallel_tool_calls = Nothing
                     , user = Nothing
+                    , web_search_options = Nothing
                     }
 
                 return ()
@@ -265,6 +277,7 @@ main = do
                     , tool_choice = Just ToolChoiceAuto
                     , parallel_tool_calls = Just True
                     , user = Just user
+                    , web_search_options = Nothing
                     }
 
                 return ()
