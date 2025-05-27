@@ -4,7 +4,6 @@
 {-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE TypeApplications      #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -90,6 +89,7 @@ main = do
     let user = "openai Haskell package"
     let chatModel = "gpt-4o-mini"
     let reasoningModel = "o3-mini"
+    let ttsModel = "tts-1"
     let Methods{..} = V1.makeMethods clientEnv (Text.pack key)
 
     -- Test each format to make sure we're handling each possible content type
@@ -97,7 +97,7 @@ main = do
     let speechTest format =
             HUnit.testCase ("Create speech - " <> show format) do
                 _ <- createSpeech _CreateSpeech
-                    { model = "tts-1"
+                    { model = ttsModel
                     , input = "Hello, world!"
                     , voice = Nova
                     , response_format = Just format
@@ -106,7 +106,17 @@ main = do
 
                 return ()
 
-    let speechTests = do
+    let speechTestDefaults =
+            HUnit.testCase "Create speech - defaults" do
+                _ <- createSpeech _CreateSpeech
+                    { model = ttsModel
+                    , input = "Hello, world!"
+                    , voice = Alloy
+                    }
+
+                return ()
+
+    let speechTests = speechTestDefaults : do
             format <- [ minBound .. maxBound ]
             return (speechTest format)
 
