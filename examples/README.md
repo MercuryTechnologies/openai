@@ -22,7 +22,7 @@ cabal run openai-example
 
 ### [`weather-chatbot-example`](./weather-chatbot-example/)
 
-A comprehensive chatbot example demonstrating tool calling and turn-based conversation flow.
+A chatbot example demonstrating tool calling and turn-based conversation flow.
 
 **Features:**
 
