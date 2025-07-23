@@ -207,17 +207,7 @@ data AudioParameters = AudioParameters
       deriving anyclass (FromJSON, ToJSON)
 
 -- | Specifies the latency tier to use for processing the request
-data ServiceTier = Default
-    deriving stock (Generic, Show)
-
-serviceOptions :: Options
-serviceOptions = aesonOptions{ tagSingleConstructors = True }
-
-instance FromJSON ServiceTier where
-    parseJSON = genericParseJSON serviceOptions
-
-instance ToJSON ServiceTier where
-    toJSON = genericToJSON serviceOptions
+type ServiceTier = Text
 
 -- | Constrains effort on reasoning for reasoning models
 data ReasoningEffort
