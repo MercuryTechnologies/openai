@@ -1,3 +1,11 @@
+1.1.1:
+
+- [Remove timeout on default `ClientEnv`](https://github.com/MercuryTechnologies/openai/pull/55)
+- [`/v1/chat/completions`: Add support for Search](https://github.com/MercuryTechnologies/openai/pull/57)
+- [Fix CreateSpeech JSON instances, add new voices and optional instructions field](https://github.com/MercuryTechnologies/openai/pull/58)
+- [Correct `ToJSON` of `FileSearchResources`](https://github.com/MercuryTechnologies/openai/pull/49)
+- [New example app for tool-calling and chat-loop](https://github.com/MercuryTechnologies/openai/pull/60)
+
 1.1.0:
 
 - BREAKING CHANGE: Fix details representations for various types [[#44](https://github.com/MercuryTechnologies/openai/pull/44)] [[#45](https://github.com/MercuryTechnologies/openai/pull/45)] [[#50](https://github.com/MercuryTechnologies/openai/pull/50)] [[#51](https://github.com/MercuryTechnologies/openai/pull/51)]
