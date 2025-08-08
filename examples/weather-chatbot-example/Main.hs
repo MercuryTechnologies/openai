@@ -214,7 +214,7 @@ main = do
 
   -- Set up client
   clientEnv <- getClientEnv "https://api.openai.com"
-  let Methods {createChatCompletion} = makeMethods clientEnv (Text.pack key)
+  let Methods {createChatCompletion} = makeMethods clientEnv (Text.pack key) Nothing Nothing
 
   -- Initial system message
   let systemMessage =
