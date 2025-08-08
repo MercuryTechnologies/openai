@@ -31,13 +31,13 @@ module OpenAI.Prelude
 import Data.ByteString.Lazy (ByteString)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
+import Data.String (IsString(..))
 import Data.Text (Text)
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Vector (Vector)
 import Data.Void (Void)
-import GHC.Generics (Generic)
-import Data.String (IsString(..))
 import Data.Word (Word8)
+import GHC.Generics (Generic)
 import Numeric.Natural (Natural)
 import Web.HttpApiData (ToHttpApiData(..))
 
@@ -59,6 +59,7 @@ import Servant.API
     , JSON
     , MimeUnrender(..)
     , OctetStream
+    , Optional
     , Post
     , QueryParam
     , ReqBody

@@ -168,8 +168,12 @@ makeMethods
     -- ^
     -> Text
     -- ^ API token
+    -> Maybe Text
+    -- ^ Organization ID
+    -> Maybe Text
+    -- ^ Project ID
     -> Methods
-makeMethods clientEnv token = Methods{..}
+makeMethods clientEnv token organizationID projectID = Methods{..}
   where
     authorization = "Bearer " <> token
 
@@ -272,7 +276,7 @@ makeMethods clientEnv token = Methods{..}
                 :<|>  listVectorStoreFilesInABatch_
                 )
             )
-      ) = Client.hoistClient @API Proxy run (Client.client @API Proxy) authorization
+      ) = Client.hoistClient @API Proxy run (Client.client @API Proxy) authorization organizationID projectID
 
     run :: Client.ClientM a -> IO a
     run clientM = do
@@ -530,6 +534,8 @@ data Methods = Methods
 -- | Servant API
 type API
     =   Header' [ Required, Strict ] "Authorization" Text
+    :>  Header' [ Optional, Strict ] "OpenAI-Organization" Text
+    :>  Header' [ Optional, Strict ] "OpenAI-Project" Text
     :>  "v1"
     :>  (     Audio.API
         :<|>  Chat.Completions.API

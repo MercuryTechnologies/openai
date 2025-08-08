@@ -19,7 +19,7 @@ main = do
 
     clientEnv <- getClientEnv "https://api.openai.com"
 
-    let Methods{ createChatCompletion } = makeMethods clientEnv (Text.pack key)
+    let Methods{ createChatCompletion } = makeMethods clientEnv (Text.pack key) Nothing Nothing
 
     text <- Text.IO.getLine
 
