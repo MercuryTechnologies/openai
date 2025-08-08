@@ -7,19 +7,20 @@ module Main where
 
 import Control.Monad (foldM, when)
 import Data.Aeson (Value (..), (.=))
-import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.KeyMap as KeyMap
-import qualified Data.ByteString.Lazy as ByteString.Lazy
 import Data.Text (Text)
-import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text.Encoding
-import qualified Data.Text.IO as Text.IO
 import Data.Vector (Vector)
-import qualified Data.Vector as Vector
+import GHC.IsList (toList)
 import OpenAI.V1
 import OpenAI.V1.Chat.Completions
 import OpenAI.V1.Tool
 import OpenAI.V1.ToolCall
+
+import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as ByteString.Lazy
+import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text.Encoding
+import qualified Data.Text.IO as Text.IO
+import qualified Data.Vector as Vector
 import qualified System.Environment as Environment
 
 -- | Mock weather data for different cities
@@ -43,7 +44,7 @@ processWeatherToolCall (ToolCall_Function toolCallId function) = do
 
   -- Parse arguments to extract city name
   let weatherResult = case Aeson.decode (ByteString.Lazy.fromStrict $ Text.Encoding.encodeUtf8 arguments) of
-        Just (Object obj) -> case KeyMap.lookup "city" obj of
+        Just (Object obj) -> case lookup "city" (toList obj) of
           Just (String cityName) -> mockWeatherData cityName
           _ -> "Error: Could not parse city name from arguments"
         _ -> "Error: Invalid arguments format"
