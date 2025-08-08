@@ -118,7 +118,7 @@ main = do
   let chatModel = "gpt-4o-mini"
   let reasoningModel = "o3-mini"
   let ttsModel = "tts-1"
-  let Methods {..} = V1.makeMethods clientEnv (Text.pack key)
+  let Methods {..} = V1.makeMethods clientEnv (Text.pack key) Nothing Nothing
 
   -- Test each format to make sure we're handling each possible content type
   -- correctly
