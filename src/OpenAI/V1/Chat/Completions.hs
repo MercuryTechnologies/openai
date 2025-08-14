@@ -221,7 +221,8 @@ instance ToJSON ServiceTier where
 
 -- | Constrains effort on reasoning for reasoning models
 data ReasoningEffort
-    = ReasoningEffort_Low
+    = ReasoningEffort_Minimal
+    | ReasoningEffort_Low
     | ReasoningEffort_Medium
     | ReasoningEffort_High
     deriving stock (Generic, Show)
