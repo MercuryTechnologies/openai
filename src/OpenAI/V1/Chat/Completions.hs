@@ -20,7 +20,7 @@ module OpenAI.V1.Chat.Completions
     , AudioFormat(..)
     , AudioParameters(..)
     , ResponseFormat(..)
-    , ServiceTier(..)
+    , ServiceTier
     , ReasoningEffort(..)
     , SearchContextSize(..)
     , UserLocation(..)

@@ -78,6 +78,12 @@ import OpenAI.V1.Audio.Translations
     (CreateTranslation, TranslationObject)
 import OpenAI.V1.Chat.Completions
     (ChatCompletionObject, CreateChatCompletion)
+import OpenAI.V1.Responses
+    ( CreateResponse
+    , ResponseObject
+    , InputItem
+    )
+import qualified OpenAI.V1.Responses as Responses
 import OpenAI.V1.FineTuning.Jobs
     ( CheckpointObject
     , CreateFineTuningJob
@@ -182,6 +188,11 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
             :<|>  createTranslation_
                     )
       :<|>  createChatCompletion
+      :<|>  (     createResponse
+            :<|>  retrieveResponse
+            :<|>  cancelResponse
+            :<|>  listResponseInputItems_
+            )
       :<|>  createEmbeddings_
       :<|>  (     createFineTuningJob
             :<|>  listFineTuningJobs_
@@ -254,6 +265,7 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
                 :<|>  retrieveRunStep
                 )
             )
+      
       :<|>  (   (\x -> x "assistants=v2")
             ->  (     createVectorStore
                 :<|>  listVectorStores_
@@ -314,6 +326,7 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
         toVector (listVectorStoreFiles_ a b c d e f)
     listVectorStoreFilesInABatch a b c d e f g =
         toVector (listVectorStoreFilesInABatch_ a b c d e f g)
+    listResponseInputItems a = toVector (listResponseInputItems_ a)
 
 -- | Hard-coded boundary to simplify the user-experience
 --
@@ -328,6 +341,7 @@ data Methods = Methods
     , createTranscription :: CreateTranscription -> IO TranscriptionObject
     , createTranslation :: CreateTranslation -> IO TranslationObject
     , createChatCompletion :: CreateChatCompletion -> IO ChatCompletionObject
+    , createResponse :: CreateResponse -> IO ResponseObject
     , createEmbeddings :: CreateEmbeddings -> IO (Vector EmbeddingObject)
     , createFineTuningJob :: CreateFineTuningJob -> IO JobObject
     , listFineTuningJobs
@@ -466,6 +480,9 @@ data Methods = Methods
         -> Maybe Text
         -- ^ include[]
         -> IO RunStepObject
+    , retrieveResponse :: Text -> IO ResponseObject
+    , cancelResponse :: Text -> IO ResponseObject
+    , listResponseInputItems :: Text -> IO (Vector InputItem)
     , createVectorStore :: CreateVectorStore -> IO VectorStoreObject
     , listVectorStores
         :: Maybe Natural
@@ -539,6 +556,7 @@ type API
     :>  "v1"
     :>  (     Audio.API
         :<|>  Chat.Completions.API
+        :<|>  Responses.API
         :<|>  Embeddings.API
         :<|>  FineTuning.Jobs.API
         :<|>  Batches.API

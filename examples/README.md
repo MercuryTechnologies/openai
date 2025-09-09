@@ -38,6 +38,21 @@ A chatbot example demonstrating tool calling and turn-based conversation flow.
 cabal run weather-chatbot-example
 ```
 
+### [`responses-example`](./responses-example/)
+
+Minimal example using the Responses API to generate text output.
+
+**Features:**
+
+- Calls `/v1/responses`
+- Prints aggregated output text from response items
+
+**Usage:**
+
+```bash
+cabal run responses-example
+```
+
 ## Setup
 
 All examples require an OpenAI API key set as an environment variable:
@@ -59,4 +74,5 @@ Build specific example:
 ```bash
 cabal build openai-example
 cabal build weather-chatbot-example
+cabal build responses-example
 ```
