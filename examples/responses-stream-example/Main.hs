@@ -55,7 +55,7 @@ main = do
             { Responses.model = "gpt-5-mini"
             , Responses.instructions = Just "You are a personal math tutor. When asked a math question, write and run code using the python tool to answer the question."
             , Responses.input = Just (Responses.Input_String "I need to solve the equation 3x + 11 = 14. Can you help me?")
-            , Responses.tools = Just [ Tool.Tool_Code_Interpreter { Tool.container = Tool.CodeInterpreterContainer_Auto{ file_ids = Nothing } } ]
+            , Responses.tools = Just [ Tool.codeInterpreterAuto ]
             }
 
     createResponseStreamTyped reqCode onEvent

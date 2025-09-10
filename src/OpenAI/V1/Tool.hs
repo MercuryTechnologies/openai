@@ -7,11 +7,15 @@ module OpenAI.V1.Tool
     , Function(..)
     , ToolChoice(..)
     , CodeInterpreterContainer(..)
+    -- * Helpers
+    , codeInterpreterAuto
+    , codeInterpreterWithFiles
     ) where
 
 import OpenAI.Prelude
 import Data.Aeson ((.:), (.:?), (.=))
 import qualified Data.Aeson as Aeson
+import qualified Data.Vector as V
 
 -- | The ranking options for the file search
 data RankingOptions = RankingOptions
@@ -101,3 +105,18 @@ instance FromJSON CodeInterpreterContainer where
             "auto" -> CodeInterpreterContainer_Auto <$> o .:? "file_ids"
             _ -> fail "Unknown code interpreter container object"
     parseJSON _ = fail "Invalid code interpreter container value"
+
+-- | Convenience: Code Interpreter with automatic new container and no files
+codeInterpreterAuto :: Tool
+codeInterpreterAuto =
+    Tool_Code_Interpreter
+        { container = CodeInterpreterContainer_Auto{ file_ids = Nothing }
+        }
+
+-- | Convenience: Code Interpreter with automatic new container seeded with files
+codeInterpreterWithFiles :: [Text] -> Tool
+codeInterpreterWithFiles xs =
+    let mFiles = case xs of
+            [] -> Nothing
+            _  -> Just (V.fromList xs)
+    in Tool_Code_Interpreter { container = CodeInterpreterContainer_Auto{ file_ids = mFiles } }

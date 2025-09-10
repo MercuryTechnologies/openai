@@ -555,6 +555,9 @@ data ResponseStreamEvent
         , param :: Maybe Text
         , sequence_number :: Natural
         }
+    -- | Fallback for forward-compatibility: if the server sends a new/unknown
+    -- streaming event type, we preserve the raw JSON payload so callers can
+    -- choose to ignore, log, or inspect it without breaking.
     | UnknownEvent Value
     deriving stock (Show)
 
