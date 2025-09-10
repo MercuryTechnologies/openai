@@ -40,6 +40,61 @@ main = do
     traverse_ display choices
 ```
 
+### Responses API (JSON)
+
+```haskell
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE OverloadedStrings     #-}
+
+import qualified Data.Text as Text
+import qualified OpenAI.V1 as V1
+import qualified OpenAI.V1.Responses as Responses
+
+main :: IO ()
+main = do
+    key <- System.Environment.getEnv "OPENAI_KEY"
+
+    env <- V1.getClientEnv "https://api.openai.com"
+    let V1.Methods{ createResponse } = V1.makeMethods env (Text.pack key) Nothing Nothing
+
+    let req = Responses._CreateResponse
+            { Responses.model = "gpt-5"
+            , Responses.input = Just (Responses.Input_String "Say hello in one sentence.")
+            }
+
+    res <- createResponse req
+    print res
+```
+
+### Responses API (Streaming)
+
+```haskell
+{-# LANGUAGE OverloadedStrings #-}
+
+import qualified Data.Aeson as Aeson
+import qualified Data.Text as Text
+import qualified OpenAI.V1 as V1
+import qualified OpenAI.V1.Responses as Responses
+
+onEvent :: Either Text.Text Aeson.Value -> IO ()
+onEvent (Left err) = putStrLn ("stream error: " <> Text.unpack err)
+onEvent (Right val) = print val
+
+main :: IO ()
+main = do
+    key <- System.Environment.getEnv "OPENAI_KEY"
+    env <- V1.getClientEnv "https://api.openai.com"
+    let V1.Methods{ createResponseStream } = V1.makeMethods env (Text.pack key) Nothing Nothing
+
+    let req = Responses._CreateResponse
+            { Responses.model = "gpt-5"
+            , Responses.input = Just (Responses.Input_String "Stream a short haiku.")
+            }
+
+    createResponseStream req onEvent
+```
+
 ## Setup
 
 ### Using Nix with Flakes (Recommended)

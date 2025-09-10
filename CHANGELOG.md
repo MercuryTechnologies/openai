@@ -1,3 +1,8 @@
+1.2.0:
+
+- [`/v1/responses`: Add support for Responses API](https://platform.openai.com/docs/api-reference/responses)
+- Add `Tool_Web_Search`
+
 1.1.1:
 
 - [Remove timeout on default `ClientEnv`](https://github.com/MercuryTechnologies/openai/pull/55)
