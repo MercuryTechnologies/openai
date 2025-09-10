@@ -130,6 +130,7 @@ import qualified Control.Exception as Exception
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
+import qualified Network.HTTP.Types.Status as Status
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as SBS
 import qualified Data.ByteString.Char8 as S8
@@ -388,52 +389,70 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
                 }
 
         HTTP.Client.withResponse request (Client.manager clientEnv) $ \response -> do
-            let br = HTTP.Client.responseBody response
-            lineBufRef <- IORef.newIORef SBS.empty
-            eventBufRef <- IORef.newIORef ([] :: [SBS.ByteString])
-            let flushEvent = do
-                    es <- fmap reverse (IORef.readIORef eventBufRef)
-                    IORef.writeIORef eventBufRef []
-                    if null es
-                        then pure False
-                        else do
-                            let payload = S8.intercalate "\n" es
-                            if payload == "[DONE]"
-                                then pure True
-                                else case (Aeson.eitherDecodeStrict payload :: Either String Aeson.Value) of
-                                    Left err -> onEvent (Left (Text.pack err)) >> pure False
-                                    Right val -> onEvent (Right val) >> pure False
+            -- Short-circuit on non-2xx HTTP statuses and surface a single error event
+            let st = HTTP.Client.responseStatus response
+            let code = Status.statusCode st
+            if code < 200 || code >= 300
+                then do
+                    bodyChunks <- HTTP.Client.brConsume (HTTP.Client.responseBody response)
+                    let errBody = SBS.concat bodyChunks
+                    let msg =
+                            "HTTP error "
+                            <> renderIntegral code
+                            <> " "
+                            <> (Text.pack (S8.unpack (Status.statusMessage st)))
+                            <> (if SBS.null errBody then "" else ": " <> Text.pack (S8.unpack errBody))
+                    onEvent (Left msg)
+                else do
+                    let br = HTTP.Client.responseBody response
+                    lineBufRef <- IORef.newIORef SBS.empty
+                    eventBufRef <- IORef.newIORef ([] :: [SBS.ByteString])
+                    let flushEvent = do
+                            es <- fmap reverse (IORef.readIORef eventBufRef)
+                            IORef.writeIORef eventBufRef []
+                            if null es
+                                then pure False
+                                else do
+                                    let payload = S8.intercalate "\n" es
+                                    if payload == "[DONE]"
+                                        then pure True
+                                        else case (Aeson.eitherDecodeStrict payload :: Either String Aeson.Value) of
+                                            Left err -> onEvent (Left (Text.pack err)) >> pure False
+                                            Right val -> onEvent (Right val) >> pure False
 
-            let handleLine line = do
-                    let l = stripCR line
-                    if S8.null l
-                        then flushEvent
-                        else if "data:" `S8.isPrefixOf` l
-                            then do
-                                let d = S8.dropWhile (==' ') (S8.drop 5 l)
-                                IORef.modifyIORef' eventBufRef (d:)
-                                pure False
-                            else pure False
+                    -- Note: SSE frames can include fields like "event:" and others.
+                    -- We currently ignore all non-"data:" fields and only buffer
+                    -- "data:" lines; an empty line flushes a complete event.
+                    let handleLine line = do
+                            let l = stripCR line
+                            if S8.null l
+                                then flushEvent
+                                else if "data:" `S8.isPrefixOf` l
+                                    then do
+                                        let d = S8.dropWhile (==' ') (S8.drop 5 l)
+                                        IORef.modifyIORef' eventBufRef (d:)
+                                        pure False
+                                    else pure False
 
-            let loop = do
-                    chunk <- HTTP.Client.brRead br
-                    if SBS.null chunk
-                        then do
-                            -- flush any pending event at EOF
-                            _ <- flushEvent
-                            pure ()
-                        else do
-                            prev <- IORef.readIORef lineBufRef
-                            let combined = prev <> chunk
-                            let ls = S8.split '\n' combined
-                            case unsnoc ls of
-                                Nothing -> loop
-                                Just (completeLines, lastLine) -> do
-                                    IORef.writeIORef lineBufRef lastLine
-                                    stop <- foldM (\acc ln -> if acc then pure True else handleLine ln) False completeLines
-                                    if stop then pure () else loop
+                    let loop = do
+                            chunk <- HTTP.Client.brRead br
+                            if SBS.null chunk
+                                then do
+                                    -- flush any pending event at EOF
+                                    _ <- flushEvent
+                                    pure ()
+                                else do
+                                    prev <- IORef.readIORef lineBufRef
+                                    let combined = prev <> chunk
+                                    let ls = S8.split '\n' combined
+                                    case unsnoc ls of
+                                        Nothing -> loop
+                                        Just (completeLines, lastLine) -> do
+                                            IORef.writeIORef lineBufRef lastLine
+                                            stop <- foldM (\acc ln -> if acc then pure True else handleLine ln) False completeLines
+                                            if stop then pure () else loop
 
-            loop
+                    loop
 
     normalizePath p = case p of
         "" -> ""
