@@ -67,33 +67,6 @@ main = do
     print res
 ```
 
-### Responses API (Streaming)
-
-```haskell
-{-# LANGUAGE OverloadedStrings #-}
-
-import qualified Data.Aeson as Aeson
-import qualified Data.Text as Text
-import qualified OpenAI.V1 as V1
-import qualified OpenAI.V1.Responses as Responses
-
-onEvent :: Either Text.Text Aeson.Value -> IO ()
-onEvent (Left err) = putStrLn ("stream error: " <> Text.unpack err)
-onEvent (Right val) = print val
-
-main :: IO ()
-main = do
-    key <- System.Environment.getEnv "OPENAI_KEY"
-    env <- V1.getClientEnv "https://api.openai.com"
-    let V1.Methods{ createResponseStream } = V1.makeMethods env (Text.pack key) Nothing Nothing
-
-    let req = Responses._CreateResponse
-            { Responses.model = "gpt-5"
-            , Responses.input = Just (Responses.Input_String "Stream a short haiku.")
-            }
-
-    createResponseStream req onEvent
-```
 
 ## Setup
 
