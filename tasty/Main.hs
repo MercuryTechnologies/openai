@@ -16,6 +16,7 @@ import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
 import OpenAI.V1 (Methods (..))
 import qualified OpenAI.V1 as V1
+import qualified OpenAI.V1.Responses as Responses
 import OpenAI.V1.Assistants
   ( AssistantObject (..),
     CreateAssistant (..),
@@ -97,6 +98,7 @@ import qualified System.Environment as Environment
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as HUnit
 import Prelude hiding (id)
+import qualified Data.IORef as IORef
 
 main :: IO ()
 main = do
@@ -860,6 +862,66 @@ main = do
 
               return ()
 
+  let responsesMinimalTest =
+        HUnit.testCase "Responses - minimal" do
+          _ <-
+            createResponse
+              Responses._CreateResponse
+                { Responses.model = chatModel,
+                  Responses.input = Just (Responses.Input_String "Say hello in one sentence."),
+                  Responses.include = Nothing,
+                  Responses.parallel_tool_calls = Nothing,
+                  Responses.store = Nothing,
+                  Responses.instructions = Nothing,
+                  Responses.stream = Nothing,
+                  Responses.stream_options = Nothing,
+                  Responses.metadata = Nothing,
+                  Responses.temperature = Nothing,
+                  Responses.top_p = Nothing,
+                  Responses.tools = Nothing,
+                  Responses.tool_choice = Nothing
+                }
+
+          return ()
+
+  let responsesStreamingHaikuTest =
+        HUnit.testCase "Responses - streaming haiku" do
+          let req =
+                Responses._CreateResponse
+                  { Responses.model = chatModel,
+                    Responses.input = Just (Responses.Input_String "Stream a short haiku about the sea."),
+                    Responses.include = Nothing,
+                    Responses.parallel_tool_calls = Nothing,
+                    Responses.store = Nothing,
+                    Responses.instructions = Nothing,
+                    Responses.stream = Nothing,
+                    Responses.stream_options = Nothing,
+                    Responses.metadata = Nothing,
+                    Responses.temperature = Nothing,
+                    Responses.top_p = Nothing,
+                    Responses.tools = Nothing,
+                    Responses.tool_choice = Nothing
+                  }
+
+          acc <- IORef.newIORef (Text.empty)
+          done <- Concurrent.newEmptyMVar
+
+          let onEvent (Left _err) = Concurrent.putMVar done ()
+              onEvent (Right ev) = case ev of
+                Responses.ResponseTextDeltaEvent {Responses.delta} ->
+                  IORef.modifyIORef' acc (<> delta)
+                Responses.ResponseCompletedEvent {} ->
+                  Concurrent.putMVar done ()
+                _ -> pure ()
+
+          createResponseStreamTyped req onEvent
+
+          _ <- Concurrent.takeMVar done
+          text <- IORef.readIORef acc
+          HUnit.assertBool "Expected non-empty streamed text" (not (Text.null text))
+
+          return ()
+
   let tests =
         speechTests
           <> [ transcriptionTest,
@@ -878,6 +940,8 @@ main = do
                createImageVariationMinimalTest,
                createImageVariationMaximalTest,
                createModerationTest,
+               responsesMinimalTest,
+               responsesStreamingHaikuTest,
                assistantsTest,
                messagesTest,
                threadsRunsStepsTest,

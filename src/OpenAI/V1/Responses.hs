@@ -12,6 +12,15 @@ module OpenAI.V1.Responses
     , OutputItem(..)
     , OutputMessage(..)
     , OutputContent(..)
+    , FunctionToolCall(..)
+    , FunctionToolCallOutput(..)
+    , WebSearchToolCall(..)
+    , WebSearchAction(..)
+    , WebSearchSource(..)
+    , ReasoningItem(..)
+    , SummaryPart(..)
+    , ReasoningText(..)
+    , ResponseStreamEvent(..)
     , ResponseObject(..)
     , ResponseUsage(..)
     , InputTokensDetails(..)
@@ -166,6 +175,10 @@ instance ToJSON OutputMessage where
 -- unknown items as raw JSON values for forward compatibility.
 data OutputItem
     = Item_OutputMessage OutputMessage
+    | Item_FunctionToolCall FunctionToolCall
+    | Item_WebSearchToolCall WebSearchToolCall
+    | Item_FunctionToolCallOutput FunctionToolCallOutput
+    | Item_Reasoning ReasoningItem
     | Item_OutputUnknown Value
     deriving stock (Show)
 
@@ -174,12 +187,289 @@ instance FromJSON OutputItem where
         ty <- o .:? "type"
         case (ty :: Maybe Text) of
             Just "message" -> Item_OutputMessage <$> parseJSON v
+            Just "function_call" -> Item_FunctionToolCall <$> parseJSON v
+            Just "web_search_call" -> Item_WebSearchToolCall <$> parseJSON v
+            Just "function_call_output" -> Item_FunctionToolCallOutput <$> parseJSON v
+            Just "reasoning" -> Item_Reasoning <$> parseJSON v
             _ -> pure (Item_OutputUnknown v)
     parseJSON other = pure (Item_OutputUnknown other)
 
 instance ToJSON OutputItem where
     toJSON (Item_OutputMessage m) = toJSON m
+    toJSON (Item_FunctionToolCall m) = toJSON m
+    toJSON (Item_WebSearchToolCall m) = toJSON m
+    toJSON (Item_FunctionToolCallOutput m) = toJSON m
+    toJSON (Item_Reasoning r) = toJSON r
     toJSON (Item_OutputUnknown v) = v
+
+-- | Function tool call output item
+data FunctionToolCall = FunctionToolCall
+    { id :: Maybe Text
+    , call_id :: Text
+    , name :: Text
+    , arguments :: Text
+    , status :: Maybe Text
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Function tool call output item
+data FunctionToolCallOutput = FunctionToolCallOutput
+    { id :: Maybe Text
+    , call_id :: Text
+    , output :: Text
+    , status :: Maybe Text
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Web search tool call output item (action is left generic for now)
+data WebSearchToolCall = WebSearchToolCall
+    { id :: Text
+    , status :: Text
+    , action :: Maybe WebSearchAction
+    } deriving stock (Generic, Show)
+
+instance FromJSON WebSearchToolCall where
+    parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON WebSearchToolCall where
+    toJSON = genericToJSON aesonOptions
+
+-- | Web search action sources
+data WebSearchSource = WebSearchSource_URL{ url :: Text }
+    deriving stock (Generic, Show)
+
+webSearchSourceOptions :: Options
+webSearchSourceOptions = aesonOptions
+    { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+    , tagSingleConstructors = True
+    , constructorTagModifier = stripPrefix "WebSearchSource_"
+    }
+
+instance FromJSON WebSearchSource where
+    parseJSON = genericParseJSON webSearchSourceOptions
+
+instance ToJSON WebSearchSource where
+    toJSON = genericToJSON webSearchSourceOptions
+
+-- | Web search action
+data WebSearchAction
+    = WebSearchAction_Search
+        { query :: Maybe Text
+        , sources :: Maybe (Vector WebSearchSource)
+        }
+    | WebSearchAction_Open_Page
+        { url :: Maybe Text }
+    | WebSearchAction_Find
+        { url :: Maybe Text
+        , pattern :: Maybe Text
+        }
+    deriving stock (Generic, Show)
+
+webSearchActionOptions :: Options
+webSearchActionOptions = aesonOptions
+    { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+    , tagSingleConstructors = True
+    , constructorTagModifier = stripPrefix "WebSearchAction_"
+    }
+
+instance FromJSON WebSearchAction where
+    parseJSON = genericParseJSON webSearchActionOptions
+
+instance ToJSON WebSearchAction where
+    toJSON = genericToJSON webSearchActionOptions
+
+-- | Reasoning summary part
+data SummaryPart = Summary_Text{ text :: Text }
+    deriving stock (Generic, Show)
+
+summaryPartOptions :: Options
+summaryPartOptions = aesonOptions
+    { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+    , tagSingleConstructors = True
+    }
+
+instance FromJSON SummaryPart where
+    parseJSON = genericParseJSON summaryPartOptions
+
+instance ToJSON SummaryPart where
+    toJSON = genericToJSON summaryPartOptions
+
+-- | Reasoning text part
+data ReasoningText = Reasoning_Text{ text :: Text }
+    deriving stock (Generic, Show)
+
+reasoningTextOptions :: Options
+reasoningTextOptions = aesonOptions
+    { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+    , tagSingleConstructors = True
+    }
+
+instance FromJSON ReasoningText where
+    parseJSON = genericParseJSON reasoningTextOptions
+
+instance ToJSON ReasoningText where
+    toJSON = genericToJSON reasoningTextOptions
+
+-- | Reasoning item produced by reasoning models
+data ReasoningItem = ReasoningItem
+    { id :: Text
+    , encrypted_content :: Maybe Text
+    , summary :: Maybe (Vector SummaryPart)
+    , content :: Maybe (Vector ReasoningText)
+    , status :: Maybe Text
+    } deriving stock (Generic, Show)
+
+instance FromJSON ReasoningItem where
+    parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON ReasoningItem where
+    toJSON = genericToJSON aesonOptions
+
+-- | Streaming events for /v1/responses (core subset with fallback)
+data ResponseStreamEvent
+    = ResponseCreatedEvent
+        { response :: ResponseObject
+        , sequence_number :: Natural
+        }
+    | ResponseInProgressEvent
+        { response :: ResponseObject
+        , sequence_number :: Natural
+        }
+    | ResponseCompletedEvent
+        { response :: ResponseObject
+        , sequence_number :: Natural
+        }
+    | ResponseFailedEvent
+        { response :: ResponseObject
+        , sequence_number :: Natural
+        }
+    | ResponseOutputItemAddedEvent
+        { output_index :: Natural
+        , item :: OutputItem
+        , sequence_number :: Natural
+        }
+    | ResponseOutputItemDoneEvent
+        { output_index :: Natural
+        , sequence_number :: Natural
+        }
+    | ResponseContentPartAddedEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , content_index :: Natural
+        , part :: OutputContent
+        , sequence_number :: Natural
+        }
+    | ResponseContentPartDoneEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , content_index :: Natural
+        , part :: OutputContent
+        , sequence_number :: Natural
+        }
+    | ResponseTextDeltaEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , content_index :: Natural
+        , delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseTextDoneEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , content_index :: Natural
+        , text :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseWebSearchCallInProgressEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseWebSearchCallSearchingEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseWebSearchCallCompletedEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ErrorEvent
+        { code :: Maybe Text
+        , message :: Text
+        , param :: Maybe Text
+        , sequence_number :: Natural
+        }
+    | UnknownEvent Value
+    deriving stock (Show)
+
+instance FromJSON ResponseStreamEvent where
+    parseJSON v@(Object o) = do
+        ty <- o .: "type"
+        case (ty :: Text) of
+            "response.created" -> ResponseCreatedEvent
+                <$> o .: "response"
+                <*> o .: "sequence_number"
+            "response.in_progress" -> ResponseInProgressEvent
+                <$> o .: "response"
+                <*> o .: "sequence_number"
+            "response.completed" -> ResponseCompletedEvent
+                <$> o .: "response"
+                <*> o .: "sequence_number"
+            "response.failed" -> ResponseFailedEvent
+                <$> o .: "response"
+                <*> o .: "sequence_number"
+            "response.output_item.added" -> ResponseOutputItemAddedEvent
+                <$> o .: "output_index"
+                <*> o .: "item"
+                <*> o .: "sequence_number"
+            "response.output_item.done" -> ResponseOutputItemDoneEvent
+                <$> o .: "output_index"
+                <*> o .: "sequence_number"
+            "response.content_part.added" -> ResponseContentPartAddedEvent
+                <$> o .: "item_id"
+                <*> o .: "output_index"
+                <*> o .: "content_index"
+                <*> o .: "part"
+                <*> o .: "sequence_number"
+            "response.content_part.done" -> ResponseContentPartDoneEvent
+                <$> o .: "item_id"
+                <*> o .: "output_index"
+                <*> o .: "content_index"
+                <*> o .: "part"
+                <*> o .: "sequence_number"
+            "response.output_text.delta" -> ResponseTextDeltaEvent
+                <$> o .: "item_id"
+                <*> o .: "output_index"
+                <*> o .: "content_index"
+                <*> o .: "delta"
+                <*> o .: "sequence_number"
+            "response.output_text.done" -> ResponseTextDoneEvent
+                <$> o .: "item_id"
+                <*> o .: "output_index"
+                <*> o .: "content_index"
+                <*> o .: "text"
+                <*> o .: "sequence_number"
+            "response.web_search_call.in_progress" -> ResponseWebSearchCallInProgressEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "response.web_search_call.searching" -> ResponseWebSearchCallSearchingEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "response.web_search_call.completed" -> ResponseWebSearchCallCompletedEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "error" -> ErrorEvent
+                <$> o .:? "code"
+                <*> o .: "message"
+                <*> o .:? "param"
+                <*> o .: "sequence_number"
+            _ -> pure (UnknownEvent v)
+    parseJSON other = pure (UnknownEvent other)
 
 -- | Usage statistics for the response request
 data ResponseUsage = ResponseUsage

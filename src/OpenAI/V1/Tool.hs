@@ -38,6 +38,7 @@ data Tool
     = Tool_Code_Interpreter
     | Tool_File_Search{ file_search :: FileSearch }
     | Tool_Function{ function :: Function }
+    | Tool_Web_Search
     deriving stock (Generic, Show)
 
 toolOptions :: Options
