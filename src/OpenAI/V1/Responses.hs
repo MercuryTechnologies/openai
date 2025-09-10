@@ -15,6 +15,10 @@ module OpenAI.V1.Responses
     , FunctionToolCall(..)
     , FunctionToolCallOutput(..)
     , WebSearchToolCall(..)
+    , FileSearchToolCall(..)
+    , FileSearchResult(..)
+    , CodeInterpreterToolCall(..)
+    , CodeInterpreterOutput(..)
     , WebSearchAction(..)
     , WebSearchSource(..)
     , Annotation(..)
@@ -179,6 +183,8 @@ data OutputItem
     | Item_FunctionToolCall FunctionToolCall
     | Item_WebSearchToolCall WebSearchToolCall
     | Item_FunctionToolCallOutput FunctionToolCallOutput
+    | Item_FileSearchToolCall FileSearchToolCall
+    | Item_CodeInterpreterToolCall CodeInterpreterToolCall
     | Item_Reasoning ReasoningItem
     | Item_OutputUnknown Value
     deriving stock (Show)
@@ -190,6 +196,8 @@ instance FromJSON OutputItem where
             Just "message" -> Item_OutputMessage <$> parseJSON v
             Just "function_call" -> Item_FunctionToolCall <$> parseJSON v
             Just "web_search_call" -> Item_WebSearchToolCall <$> parseJSON v
+            Just "file_search_call" -> Item_FileSearchToolCall <$> parseJSON v
+            Just "code_interpreter_call" -> Item_CodeInterpreterToolCall <$> parseJSON v
             Just "function_call_output" -> Item_FunctionToolCallOutput <$> parseJSON v
             Just "reasoning" -> Item_Reasoning <$> parseJSON v
             _ -> pure (Item_OutputUnknown v)
@@ -200,6 +208,8 @@ instance ToJSON OutputItem where
     toJSON (Item_FunctionToolCall m) = toJSON m
     toJSON (Item_WebSearchToolCall m) = toJSON m
     toJSON (Item_FunctionToolCallOutput m) = toJSON m
+    toJSON (Item_FileSearchToolCall m) = toJSON m
+    toJSON (Item_CodeInterpreterToolCall m) = toJSON m
     toJSON (Item_Reasoning r) = toJSON r
     toJSON (Item_OutputUnknown v) = v
 
@@ -234,6 +244,53 @@ instance FromJSON WebSearchToolCall where
 
 instance ToJSON WebSearchToolCall where
     toJSON = genericToJSON aesonOptions
+
+-- | File search result entry
+data FileSearchResult = FileSearchResult
+    { file_id :: Text
+    , text :: Text
+    , filename :: Text
+    , score :: Maybe Double
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | File search tool call output item
+data FileSearchToolCall = FileSearchToolCall
+    { id :: Text
+    , status :: Text
+    , queries :: Vector Text
+    , results :: Maybe (Vector FileSearchResult)
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Code interpreter tool call outputs
+data CodeInterpreterOutput
+    = CodeInterpreterOutput_Logs{ logs :: Text }
+    | CodeInterpreterOutput_Image{ url :: Text }
+    deriving stock (Generic, Show)
+
+codeInterpreterOutputOptions :: Options
+codeInterpreterOutputOptions = aesonOptions
+    { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+    , tagSingleConstructors = True
+    , constructorTagModifier = stripPrefix "CodeInterpreterOutput_"
+    }
+
+instance FromJSON CodeInterpreterOutput where
+    parseJSON = genericParseJSON codeInterpreterOutputOptions
+
+instance ToJSON CodeInterpreterOutput where
+    toJSON = genericToJSON codeInterpreterOutputOptions
+
+-- | Code interpreter tool call output item
+data CodeInterpreterToolCall = CodeInterpreterToolCall
+    { id :: Text
+    , status :: Text
+    , container_id :: Maybe Text
+    , code :: Maybe Text
+    , outputs :: Maybe (Vector CodeInterpreterOutput)
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Web search action sources
 data WebSearchSource = WebSearchSource_URL{ url :: Text }
@@ -450,8 +507,50 @@ data ResponseStreamEvent
         , item_id :: Text
         , sequence_number :: Natural
         }
+    | ResponseFileSearchCallInProgressEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseFileSearchCallSearchingEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseFileSearchCallCompletedEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseCodeInterpreterCallInProgressEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseCodeInterpreterCallInterpretingEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseCodeInterpreterCallCompletedEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseCodeInterpreterCallCodeDeltaEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseCodeInterpreterCallCodeDoneEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , code :: Text
+        , sequence_number :: Natural
+        }
     | ErrorEvent
-        { code :: Maybe Text
+        { error_code :: Maybe Text
         , message :: Text
         , param :: Maybe Text
         , sequence_number :: Natural
@@ -524,6 +623,40 @@ instance FromJSON ResponseStreamEvent where
             "response.web_search_call.completed" -> ResponseWebSearchCallCompletedEvent
                 <$> o .: "output_index"
                 <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "response.file_search_call.in_progress" -> ResponseFileSearchCallInProgressEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "response.file_search_call.searching" -> ResponseFileSearchCallSearchingEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "response.file_search_call.completed" -> ResponseFileSearchCallCompletedEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "response.code_interpreter_call.in_progress" -> ResponseCodeInterpreterCallInProgressEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "response.code_interpreter_call.interpreting" -> ResponseCodeInterpreterCallInterpretingEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "response.code_interpreter_call.completed" -> ResponseCodeInterpreterCallCompletedEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "sequence_number"
+            "response.code_interpreter_call_code.delta" -> ResponseCodeInterpreterCallCodeDeltaEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "delta"
+                <*> o .: "sequence_number"
+            "response.code_interpreter_call_code.done" -> ResponseCodeInterpreterCallCodeDoneEvent
+                <$> o .: "output_index"
+                <*> o .: "item_id"
+                <*> o .: "code"
                 <*> o .: "sequence_number"
             "error" -> ErrorEvent
                 <$> o .:? "code"

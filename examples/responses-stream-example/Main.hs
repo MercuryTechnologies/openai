@@ -37,13 +37,25 @@ main = do
 
     createResponseStreamTyped reqHaiku onEvent
     
-    putStrLn ""
+    putStrLn "--------------------------------"
 
-    -- 2) Web search example (showcases web_search_call)
+    -- 2) Web search example
     let reqSearch = Responses._CreateResponse
-            { Responses.model = "gpt-5"
-            , Responses.input = Just (Responses.Input_String "Use web_search to find current news about France and display a concise summary.")
+            { Responses.model = "gpt-5-mini"
+            , Responses.input = Just (Responses.Input_String "Use web_search to find current news about France and display a concise summary. Do not include citations, references, or URLs in the output; provide only the summary text.")
             , Responses.tools = Just [ Tool.Tool_Web_Search ]
             }
 
     createResponseStreamTyped reqSearch onEvent
+
+    putStrLn "--------------------------------"
+
+    -- 3) Code interpreter example (per docs)
+    let reqCode = Responses._CreateResponse
+            { Responses.model = "gpt-5-mini"
+            , Responses.instructions = Just "You are a personal math tutor. When asked a math question, write and run code using the python tool to answer the question."
+            , Responses.input = Just (Responses.Input_String "I need to solve the equation 3x + 11 = 14. Can you help me?")
+            , Responses.tools = Just [ Tool.Tool_Code_Interpreter { Tool.container = Tool.CodeInterpreterContainer_Auto{ file_ids = Nothing } } ]
+            }
+
+    createResponseStreamTyped reqCode onEvent
