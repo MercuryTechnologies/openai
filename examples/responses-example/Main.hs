@@ -20,7 +20,7 @@ main = do
     let V1.Methods{ createResponse } = V1.makeMethods env key Nothing Nothing
 
     let req = Responses._CreateResponse
-            { Responses.model = "gpt-4.1"
+            { Responses.model = "gpt-5"
             , Responses.input = Just (Responses.Input_String "Tell me a three sentence bedtime story about a unicorn.")
             }
 

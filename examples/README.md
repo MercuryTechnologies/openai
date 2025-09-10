@@ -53,6 +53,21 @@ Minimal example using the Responses API to generate text output.
 cabal run responses-example
 ```
 
+### [`responses-stream-example`](./responses-stream-example/)
+
+Streams events from the Responses API and prints text deltas in real time.
+
+**Features:**
+
+- Calls `/v1/responses` with `stream = true`
+- Handles `response.output_text.delta` and prints deltas as they arrive
+
+**Usage:**
+
+```bash
+cabal run responses-stream-example
+```
+
 ## Setup
 
 All examples require an OpenAI API key set as an environment variable:
@@ -75,4 +90,5 @@ Build specific example:
 cabal build openai-example
 cabal build weather-chatbot-example
 cabal build responses-example
+cabal build responses-stream-example
 ```
