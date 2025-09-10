@@ -32,15 +32,17 @@ main = do
     -- 1) Cute haiku test (no tools)
     let reqHaiku = Responses._CreateResponse
             { Responses.model = "gpt-5-mini"
-            , Responses.input = Just (Responses.Input_String "Stream a short haiku about the sea.")
+            , Responses.input = Just (Responses.Input_String "Write a short haiku about the sea.")
             }
 
     createResponseStreamTyped reqHaiku onEvent
+    
+    putStrLn ""
 
     -- 2) Web search example (showcases web_search_call)
     let reqSearch = Responses._CreateResponse
             { Responses.model = "gpt-5"
-            , Responses.input = Just (Responses.Input_String "Use web_search to search for \"news about France\" and display a brief summary.")
+            , Responses.input = Just (Responses.Input_String "Use web_search to find current news about France and display a concise summary.")
             , Responses.tools = Just [ Tool.Tool_Web_Search ]
             }
 

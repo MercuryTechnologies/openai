@@ -17,6 +17,7 @@ module OpenAI.V1.Responses
     , WebSearchToolCall(..)
     , WebSearchAction(..)
     , WebSearchSource(..)
+    , Annotation(..)
     , ReasoningItem(..)
     , SummaryPart(..)
     , ReasoningText(..)
@@ -278,6 +279,52 @@ instance FromJSON WebSearchAction where
 instance ToJSON WebSearchAction where
     toJSON = genericToJSON webSearchActionOptions
 
+-- | Output text annotation
+data Annotation
+    = Annotation_File_Citation
+        { file_id :: Text
+        , index :: Natural
+        , filename :: Text
+        }
+    | Annotation_Url_Citation
+        { url :: Text
+        , start_index :: Natural
+        , end_index :: Natural
+        , title :: Text
+        }
+    | Annotation_Container_File_Citation
+        { container_id :: Text
+        , file_id :: Text
+        , start_index :: Natural
+        , end_index :: Natural
+        , filename :: Text
+        }
+    | Annotation_File_Path
+        { file_id :: Text
+        , index :: Natural
+        }
+    deriving stock (Generic, Show)
+
+annotationOptions :: Options
+annotationOptions = aesonOptions
+    { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+    , tagSingleConstructors = True
+    , constructorTagModifier =
+        ( \c -> case c of
+            "Annotation_File_Citation" -> "file_citation"
+            "Annotation_Url_Citation" -> "url_citation"
+            "Annotation_Container_File_Citation" -> "container_file_citation"
+            "Annotation_File_Path" -> "file_path"
+            other -> labelModifier other
+        )
+    }
+
+instance FromJSON Annotation where
+    parseJSON = genericParseJSON annotationOptions
+
+instance ToJSON Annotation where
+    toJSON = genericToJSON annotationOptions
+
 -- | Reasoning summary part
 data SummaryPart = Summary_Text{ text :: Text }
     deriving stock (Generic, Show)
@@ -380,6 +427,14 @@ data ResponseStreamEvent
         , text :: Text
         , sequence_number :: Natural
         }
+    | ResponseOutputTextAnnotationAddedEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , content_index :: Natural
+        , annotation_index :: Natural
+        , annotation :: Annotation
+        , sequence_number :: Natural
+        }
     | ResponseWebSearchCallInProgressEvent
         { output_index :: Natural
         , item_id :: Text
@@ -450,6 +505,13 @@ instance FromJSON ResponseStreamEvent where
                 <*> o .: "output_index"
                 <*> o .: "content_index"
                 <*> o .: "text"
+                <*> o .: "sequence_number"
+            "response.output_text.annotation.added" -> ResponseOutputTextAnnotationAddedEvent
+                <$> o .: "item_id"
+                <*> o .: "output_index"
+                <*> o .: "content_index"
+                <*> o .: "annotation_index"
+                <*> o .: "annotation"
                 <*> o .: "sequence_number"
             "response.web_search_call.in_progress" -> ResponseWebSearchCallInProgressEvent
                 <$> o .: "output_index"
