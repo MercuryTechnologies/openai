@@ -753,7 +753,6 @@ _CreateResponse = CreateResponse
     , top_p = Nothing
     , tools = Nothing
     , tool_choice = Nothing
-    , model = "gpt-4o-mini"
     }
 
 -- | Servant API for /v1/responses
