@@ -8,6 +8,7 @@ module OpenAI.V1.Tool
     , ToolChoice(..)
     , CodeInterpreterContainer(..)
     -- * Helpers
+    , codeInterpreter
     , codeInterpreterAuto
     , codeInterpreterWithFiles
     ) where
@@ -42,7 +43,7 @@ data Function = Function
 
 -- | A tool enabled on the assistant
 data Tool
-    = Tool_Code_Interpreter{ container :: CodeInterpreterContainer }
+    = Tool_Code_Interpreter{ container :: Maybe CodeInterpreterContainer }
     | Tool_File_Search{ file_search :: FileSearch }
     | Tool_Function{ function :: Function }
     | Tool_Web_Search
@@ -106,11 +107,16 @@ instance FromJSON CodeInterpreterContainer where
             _ -> fail "Unknown code interpreter container object"
     parseJSON _ = fail "Invalid code interpreter container value"
 
+-- | Convenience: Code Interpreter without an explicit container (for Assistants API)
+codeInterpreter :: Tool
+codeInterpreter =
+    Tool_Code_Interpreter { container = Nothing }
+
 -- | Convenience: Code Interpreter with automatic new container and no files
 codeInterpreterAuto :: Tool
 codeInterpreterAuto =
     Tool_Code_Interpreter
-        { container = CodeInterpreterContainer_Auto{ file_ids = Nothing }
+        { container = Just CodeInterpreterContainer_Auto{ file_ids = Nothing }
         }
 
 -- | Convenience: Code Interpreter with automatic new container seeded with files
@@ -119,4 +125,4 @@ codeInterpreterWithFiles xs =
     let mFiles = case xs of
             [] -> Nothing
             _  -> Just (V.fromList xs)
-    in Tool_Code_Interpreter { container = CodeInterpreterContainer_Auto{ file_ids = mFiles } }
+    in Tool_Code_Interpreter { container = Just CodeInterpreterContainer_Auto{ file_ids = mFiles } }
