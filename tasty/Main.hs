@@ -891,7 +891,7 @@ main = do
             createResponse
               Responses._CreateResponse
                 { Responses.model = chatModel,
-                  Responses.input = Just (Responses.Input_String "Say hello in one sentence."),
+                  Responses.input = Just [Responses.Item_InputMessage{ Responses.role = Responses.User, Responses.content = [Responses.Input_Text "Say hello in one sentence."], Responses.status = Nothing }],
                   Responses.include = Nothing,
                   Responses.parallel_tool_calls = Nothing,
                   Responses.store = Nothing,
@@ -912,7 +912,7 @@ main = do
           let req =
                 Responses._CreateResponse
                   { Responses.model = chatModel,
-                    Responses.input = Just (Responses.Input_String "Stream a short haiku about the sea."),
+                    Responses.input = Just [Responses.Item_InputMessage{ Responses.role = Responses.User, Responses.content = [Responses.Input_Text "Stream a short haiku about the sea."], Responses.status = Nothing }],
                     Responses.include = Nothing,
                     Responses.parallel_tool_calls = Nothing,
                     Responses.store = Nothing,
@@ -950,7 +950,7 @@ main = do
           let req =
                 Responses._CreateResponse
                   { Responses.model = chatModel,
-                    Responses.input = Just (Responses.Input_String "Solve 3x + 11 = 14 and provide x as a number. Use the code interpreter."),
+                    Responses.input = Just [Responses.Item_InputMessage{ Responses.role = Responses.User, Responses.content = [Responses.Input_Text "Solve 3x + 11 = 14 and provide x as a number. Use the code interpreter."], Responses.status = Nothing }],
                     Responses.include = Nothing,
                     Responses.parallel_tool_calls = Nothing,
                     Responses.store = Nothing,

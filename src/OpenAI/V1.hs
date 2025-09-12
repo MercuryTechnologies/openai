@@ -391,14 +391,13 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
         HTTP.Client.withResponse request (Client.manager clientEnv) $ \response -> do
             -- Short-circuit on non-2xx HTTP statuses and surface a single error event
             let st = HTTP.Client.responseStatus response
-            let code = Status.statusCode st
-            if code < 200 || code >= 300
+            if not (Status.statusIsSuccessful st)
                 then do
                     bodyChunks <- HTTP.Client.brConsume (HTTP.Client.responseBody response)
                     let errBody = SBS.concat bodyChunks
                     let msg =
                             "HTTP error "
-                            <> renderIntegral code
+                            <> renderIntegral (Status.statusCode st)
                             <> " "
                             <> (Text.pack (S8.unpack (Status.statusMessage st)))
                             <> (if SBS.null errBody then "" else ": " <> Text.pack (S8.unpack errBody))
@@ -408,12 +407,11 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
                     lineBufRef <- IORef.newIORef SBS.empty
                     eventBufRef <- IORef.newIORef ([] :: [SBS.ByteString])
                     let flushEvent = do
-                            es <- fmap reverse (IORef.readIORef eventBufRef)
-                            IORef.writeIORef eventBufRef []
+                            es <- IORef.atomicModifyIORef eventBufRef (\buf -> ([], reverse buf))
                             if null es
                                 then pure False
                                 else do
-                                    let payload = S8.intercalate "\n" es
+                                    let payload = S8.concat es
                                     if payload == "[DONE]"
                                         then pure True
                                         else case (Aeson.eitherDecodeStrict payload :: Either String Aeson.Value) of

@@ -5,7 +5,7 @@ module OpenAI.V1.Responses
     ( -- * Main types
       CreateResponse(..)
     , _CreateResponse
-    , Input(..)
+    , Input
     , InputItem(..)
     , InputRole(..)
     , InputContent(..)
@@ -36,26 +36,14 @@ module OpenAI.V1.Responses
     ) where
 
 import OpenAI.Prelude hiding (Input(..))
-import Data.Aeson (Object, (.=), (.:), (.:?))
-import qualified Data.Aeson as Aeson
+import Data.Aeson (Object, (.:), (.:?))
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
 import OpenAI.V1.Tool (Tool, ToolChoice)
 
 -- | Heterogeneous input for the Responses API
--- A single request input can be a raw text string or a list of input items.
-data Input
-    = Input_String Text
-    | Input_List (Vector InputItem)
-    deriving stock (Generic, Show)
-
-instance ToJSON Input where
-    toJSON (Input_String t) = String t
-    toJSON (Input_List xs) = toJSON xs
-
-instance FromJSON Input where
-    parseJSON (String t) = pure (Input_String t)
-    parseJSON v = Input_List <$> parseJSON v
+-- Input is a list of input items (for a simple string, use a single Input_Text item)
+type Input = Vector InputItem
 
 -- | Role of an input message
 data InputRole = User | System | Developer
@@ -80,8 +68,6 @@ inputContentOptions =
     aesonOptions
         { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
         , tagSingleConstructors = True
-        -- Keep constructor names like "Input_Text" -> "input_text"
-        , constructorTagModifier = labelModifier
         }
 
 instance FromJSON InputContent where
@@ -90,35 +76,28 @@ instance FromJSON InputContent where
 instance ToJSON InputContent where
     toJSON = genericToJSON inputContentOptions
 
--- | A single input item. We explicitly support message inputs and pass-through
--- any other unrecognized item shapes without interpretation.
+-- | An input item
 data InputItem
     = Item_InputMessage
         { role :: InputRole
         , content :: Vector InputContent
         , status :: Maybe Text
         }
-    | Item_InputUnknown Value
-    deriving stock (Show)
+    deriving stock (Generic, Show)
 
-instance ToJSON InputItem where
-    toJSON Item_InputMessage{ role, content, status } =
-        Aeson.object ( [ "type" .= String "message"
-                 , "role" .= role
-                 , "content" .= content
-                 ] <> maybe [] (\s -> [ ("status", toJSON s) ]) status )
-    toJSON (Item_InputUnknown v) = v
+inputItemOptions :: Options
+inputItemOptions =
+    aesonOptions
+        { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+        , tagSingleConstructors = True
+        , constructorTagModifier = stripPrefix "Item_Input"
+        }
 
 instance FromJSON InputItem where
-    parseJSON v@(Object o) = do
-        ty <- o .:? "type"
-        case (ty :: Maybe Text) of
-            Just "message" -> Item_InputMessage
-                <$> o .: "role"
-                <*> o .: "content"
-                <*> o .:? "status"
-            _ -> pure (Item_InputUnknown v)
-    parseJSON other = pure (Item_InputUnknown other)
+    parseJSON = genericParseJSON inputItemOptions
+
+instance ToJSON InputItem where
+    toJSON = genericToJSON inputItemOptions
 
 -- | Output content from the model
 data OutputContent
@@ -136,8 +115,6 @@ outputContentOptions =
     aesonOptions
         { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
         , tagSingleConstructors = True
-        -- Keep constructor names like "Output_Text" -> "output_text"
-        , constructorTagModifier = labelModifier
         }
 
 instance FromJSON OutputContent where
@@ -147,34 +124,26 @@ instance ToJSON OutputContent where
     toJSON = genericToJSON outputContentOptions
 
 -- | An output message item
-data OutputMessage = OutputMessage
+data OutputMessage = Item_Message
     { id :: Text
     , role :: Text
     , content :: Vector OutputContent
     , status :: Text
     } deriving stock (Generic, Show)
 
+outputMessageOptions :: Options
+outputMessageOptions =
+    aesonOptions
+        { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+        , tagSingleConstructors = True
+        , constructorTagModifier = stripPrefix "Item_"
+        }
+
 instance FromJSON OutputMessage where
-    parseJSON (Object o) = do
-        ty <- o .: "type"
-        if (ty :: Text) == "message"
-            then OutputMessage
-                <$> o .: "id"
-                <*> o .: "role"
-                <*> o .: "content"
-                <*> o .: "status"
-            else fail "Expected output item of type 'message'"
-    parseJSON _ = fail "Expected object for OutputMessage"
+    parseJSON = genericParseJSON outputMessageOptions
 
 instance ToJSON OutputMessage where
-    toJSON OutputMessage{ id = oid, role, content, status } =
-        Aeson.object
-            [ "type" .= String "message"
-            , "id" .= oid
-            , "role" .= role
-            , "content" .= content
-            , "status" .= status
-            ]
+    toJSON = genericToJSON outputMessageOptions
 
 -- | A generated output item. We support message items explicitly and preserve
 -- unknown items as raw JSON values for forward compatibility.
@@ -366,14 +335,7 @@ annotationOptions :: Options
 annotationOptions = aesonOptions
     { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
     , tagSingleConstructors = True
-    , constructorTagModifier =
-        ( \c -> case c of
-            "Annotation_File_Citation" -> "file_citation"
-            "Annotation_Url_Citation" -> "url_citation"
-            "Annotation_Container_File_Citation" -> "container_file_citation"
-            "Annotation_File_Path" -> "file_path"
-            other -> labelModifier other
-        )
+    , constructorTagModifier = stripPrefix "Annotation_"
     }
 
 instance FromJSON Annotation where
@@ -718,7 +680,7 @@ data ResponseObject = ResponseObject
 -- | Request body for /v1/responses
 data CreateResponse = CreateResponse
     { model :: Model
-    , input :: Maybe Input
+    , input :: Maybe (Vector InputItem)
     , include :: Maybe (Vector Text)
     , parallel_tool_calls :: Maybe Bool
     , store :: Maybe Bool

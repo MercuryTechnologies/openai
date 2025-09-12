@@ -21,7 +21,7 @@ main = do
 
     let req = Responses._CreateResponse
             { Responses.model = "gpt-5"
-            , Responses.input = Just (Responses.Input_String "Tell me a three sentence bedtime story about a unicorn.")
+            , Responses.input = Just [Responses.InputItem{ Responses.role = Nothing, Responses.content = [Responses.Input_Text "Tell me a three sentence bedtime story about a unicorn."] }]
             }
 
     resp <- createResponse req
@@ -31,11 +31,6 @@ main = do
 
 collectText :: Responses.ResponseObject -> [Text.Text]
 collectText Responses.ResponseObject{ Responses.output } = do
-    item <- toList output
-    case item of
-        Responses.Item_OutputMessage Responses.OutputMessage{ Responses.content } -> do
-            part <- toList content
-            case part of
-                Responses.Output_Text{ Responses.text } -> [ text ]
-                _ -> []
-        _ -> []
+    Responses.Item_OutputMessage Responses.OutputMessage{ Responses.content } <- toList output
+    Responses.Output_Text{ Responses.text } <- toList content
+    return text
