@@ -92,14 +92,13 @@ data CodeInterpreterContainer
     deriving stock (Generic, Show)
 
 instance ToJSON CodeInterpreterContainer where
-    toJSON CodeInterpreterContainer_ID{ container_id } = toJSON container_id
-    toJSON CodeInterpreterContainer_Auto{ file_ids } =
-        Aeson.object ( [ "type" .= String "auto" ]
-                 <> maybe [] (\ids -> [ ("file_ids", toJSON ids) ]) file_ids
-               )
+    toJSON (CodeInterpreterContainer_ID container_id) = toJSON container_id
+    toJSON (CodeInterpreterContainer_Auto file_ids) =
+        Aeson.object $ "type" .= String "auto" : 
+                      maybe [] (\ids -> ["file_ids" .= ids]) file_ids
 
 instance FromJSON CodeInterpreterContainer where
-    parseJSON v@(String _) = CodeInterpreterContainer_ID <$> parseJSON v
+    parseJSON (String s) = pure $ CodeInterpreterContainer_ID s
     parseJSON (Object o) = do
         t <- o .: "type"
         case (t :: Text) of
