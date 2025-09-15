@@ -36,12 +36,11 @@ module OpenAI.V1.Responses
     ) where
 
 import OpenAI.Prelude hiding (Input(..))
-import Data.Aeson (Object, (.:?))
+import Data.Aeson (Object)
 -- no TH; inline JSON instances for payloads
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
 import OpenAI.V1.Tool (Tool, ToolChoice)
-import qualified Data.Text as Text
 
 -- | Input for the Responses API: a list of input items
 newtype Input = Input (Vector InputItem)
@@ -149,38 +148,104 @@ instance ToJSON OutputMessage where
 
 -- | A generated output item.
 data OutputItem
-    = Item_OutputMessage OutputMessage
-    | Item_FunctionToolCall FunctionToolCall
-    | Item_WebSearchToolCall WebSearchToolCall
-    | Item_FunctionToolCallOutput FunctionToolCallOutput
-    | Item_FileSearchToolCall FileSearchToolCall
-    | Item_CodeInterpreterToolCall CodeInterpreterToolCall
-    | Item_Reasoning ReasoningItem
-    deriving stock (Show)
+    = Item_OutputMessage
+        { message_id :: Text
+        , message_role :: Text
+        , message_content :: Vector OutputContent
+        , message_status :: Text
+        }
+    | Item_FunctionToolCall
+        { function_id :: Maybe Text
+        , function_call_id :: Text
+        , function_name :: Text
+        , function_arguments :: Text
+        , function_status :: Maybe Text
+        }
+    | Item_WebSearchToolCall
+        { web_search_id :: Text
+        , web_search_status :: Text
+        , web_search_action :: Maybe WebSearchAction
+        }
+    | Item_FunctionToolCallOutput
+        { function_output_id :: Maybe Text
+        , function_output_call_id :: Text
+        , function_output_output :: Text
+        , function_output_status :: Maybe Text
+        }
+    | Item_FileSearchToolCall
+        { file_search_id :: Text
+        , file_search_status :: Text
+        , file_search_queries :: Vector Text
+        , file_search_results :: Maybe (Vector FileSearchResult)
+        }
+    | Item_CodeInterpreterToolCall
+        { code_interpreter_id :: Text
+        , code_interpreter_status :: Text
+        , code_interpreter_container_id :: Maybe Text
+        , code_interpreter_code :: Maybe Text
+        , code_interpreter_outputs :: Maybe (Vector CodeInterpreterOutput)
+        }
+    | Item_Reasoning
+        { reasoning_id :: Text
+        , reasoning_encrypted_content :: Maybe Text
+        , reasoning_summary :: Maybe (Vector SummaryPart)
+        , reasoning_content :: Maybe (Vector ReasoningText)
+        , reasoning_status :: Maybe Text
+        }
+    deriving stock (Generic, Show)
+
+outputItemOptions :: Options
+outputItemOptions = aesonOptions
+    { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+    , tagSingleConstructors = True
+    , fieldLabelModifier = \s -> case s of
+        "message_id" -> "id"
+        "message_role" -> "role"
+        "message_content" -> "content"
+        "message_status" -> "status"
+        "function_id" -> "id"
+        "function_call_id" -> "call_id"
+        "function_name" -> "name"
+        "function_arguments" -> "arguments"
+        "function_status" -> "status"
+        "web_search_id" -> "id"
+        "web_search_status" -> "status"
+        "web_search_action" -> "action"
+        "function_output_id" -> "id"
+        "function_output_call_id" -> "call_id"
+        "function_output_output" -> "output"
+        "function_output_status" -> "status"
+        "file_search_id" -> "id"
+        "file_search_status" -> "status"
+        "file_search_queries" -> "queries"
+        "file_search_results" -> "results"
+        "code_interpreter_id" -> "id"
+        "code_interpreter_status" -> "status"
+        "code_interpreter_container_id" -> "container_id"
+        "code_interpreter_code" -> "code"
+        "code_interpreter_outputs" -> "outputs"
+        "reasoning_id" -> "id"
+        "reasoning_encrypted_content" -> "encrypted_content"
+        "reasoning_summary" -> "summary"
+        "reasoning_content" -> "content"
+        "reasoning_status" -> "status"
+        other -> other
+    , constructorTagModifier = \s -> case s of
+        "Item_OutputMessage" -> "message"
+        "Item_FunctionToolCall" -> "function_call"
+        "Item_WebSearchToolCall" -> "web_search_call"
+        "Item_FunctionToolCallOutput" -> "function_call_output"
+        "Item_FileSearchToolCall" -> "file_search_call"
+        "Item_CodeInterpreterToolCall" -> "code_interpreter_call"
+        "Item_Reasoning" -> "reasoning"
+        _ -> Prelude.error "Unknown OutputItem constructor"
+    }
 
 instance FromJSON OutputItem where
-    parseJSON v@(Object o) = do
-        ty <- o .:? "type"
-        case (ty :: Maybe Text) of
-            Just "message" -> Item_OutputMessage <$> parseJSON v
-            Just "function_call" -> Item_FunctionToolCall <$> parseJSON v
-            Just "web_search_call" -> Item_WebSearchToolCall <$> parseJSON v
-            Just "file_search_call" -> Item_FileSearchToolCall <$> parseJSON v
-            Just "code_interpreter_call" -> Item_CodeInterpreterToolCall <$> parseJSON v
-            Just "function_call_output" -> Item_FunctionToolCallOutput <$> parseJSON v
-            Just "reasoning" -> Item_Reasoning <$> parseJSON v
-            Just other -> fail ("Unknown OutputItem type: " <> Text.unpack other)
-            Nothing -> fail "Missing type field for OutputItem"
-    parseJSON _ = fail "Expected object for OutputItem"
+    parseJSON = genericParseJSON outputItemOptions
 
 instance ToJSON OutputItem where
-    toJSON (Item_OutputMessage m) = toJSON m
-    toJSON (Item_FunctionToolCall m) = toJSON m
-    toJSON (Item_WebSearchToolCall m) = toJSON m
-    toJSON (Item_FunctionToolCallOutput m) = toJSON m
-    toJSON (Item_FileSearchToolCall m) = toJSON m
-    toJSON (Item_CodeInterpreterToolCall m) = toJSON m
-    toJSON (Item_Reasoning r) = toJSON r
+    toJSON = genericToJSON outputItemOptions
 
 -- | Function tool call output item
 data FunctionToolCall = FunctionToolCall

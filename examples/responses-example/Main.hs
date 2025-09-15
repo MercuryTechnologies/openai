@@ -37,6 +37,6 @@ main = do
 
 collectText :: Responses.ResponseObject -> [Text.Text]
 collectText Responses.ResponseObject{ Responses.output } = do
-    Responses.Item_OutputMessage Responses.OutputMessage{ Responses.content } <- toList output
-    Responses.Output_Text{ Responses.text } <- toList content
+    Responses.Item_OutputMessage{ Responses.message_content } <- toList output
+    Responses.Output_Text{ Responses.text } <- toList message_content
     return text
