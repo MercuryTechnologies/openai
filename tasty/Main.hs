@@ -943,9 +943,9 @@ main = do
 
           let onEvent (Left _err) = Concurrent.putMVar done ()
               onEvent (Right ev) = case ev of
-                Responses.ResponseTextDeltaEvent Responses.ResponseTextDeltaEventPayload{ Responses.delta = d } ->
+                Responses.ResponseTextDeltaEvent{ Responses.delta = d } ->
                   IORef.modifyIORef' acc (<> d)
-                Responses.ResponseCompletedEvent _ ->
+                Responses.ResponseCompletedEvent{} ->
                   Concurrent.putMVar done ()
                 _ -> pure ()
 
@@ -988,15 +988,15 @@ main = do
 
           let onEvent (Left _err) = Concurrent.putMVar done ()
               onEvent (Right ev) = case ev of
-                Responses.ResponseTextDeltaEvent Responses.ResponseTextDeltaEventPayload{ Responses.delta = d } ->
+                Responses.ResponseTextDeltaEvent{ Responses.delta = d } ->
                   IORef.modifyIORef' acc (<> d)
-                Responses.ResponseCodeInterpreterCallInProgressEvent _ ->
+                Responses.ResponseCodeInterpreterCallInProgressEvent{} ->
                   IORef.writeIORef sawCI True
-                Responses.ResponseCodeInterpreterCallInterpretingEvent _ ->
+                Responses.ResponseCodeInterpreterCallInterpretingEvent{} ->
                   IORef.writeIORef sawCI True
-                Responses.ResponseCodeInterpreterCallCompletedEvent _ -> do
+                Responses.ResponseCodeInterpreterCallCompletedEvent{} -> do
                   IORef.writeIORef sawCI True
-                Responses.ResponseCompletedEvent _ ->
+                Responses.ResponseCompletedEvent{} ->
                   Concurrent.putMVar done ()
                 _ -> pure ()
 

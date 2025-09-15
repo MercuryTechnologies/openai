@@ -23,9 +23,9 @@ main = do
     let onEvent (Left err) = hPutStrLn stderr ("stream error: " <> T.unpack err)
         onEvent (Right ev) = case ev of
             -- Only print model text deltas and newline on part done
-            Responses.ResponseTextDeltaEvent Responses.ResponseTextDeltaEventPayload{ Responses.delta = d } ->
+            Responses.ResponseTextDeltaEvent{ Responses.delta = d } ->
                 TIO.putStr d >> hFlush stdout
-            Responses.ResponseTextDoneEvent _ -> putStrLn ""
+            Responses.ResponseTextDoneEvent{} -> putStrLn ""
             -- Ignore all other events for a clean output
             _ -> pure ()
 
