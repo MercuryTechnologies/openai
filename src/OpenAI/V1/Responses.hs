@@ -61,7 +61,6 @@ module OpenAI.V1.Responses
 
 import OpenAI.Prelude hiding (Input(..))
 import Data.Aeson (Object, (.:), (.:?))
-import qualified Data.Aeson as Aeson
 -- no TH; inline JSON instances for payloads
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
@@ -446,57 +445,45 @@ data ResponseStreamEvent
     | ResponseCodeInterpreterCallCodeDeltaEvent ResponseCodeInterpreterCallCodeDeltaEventPayload
     | ResponseCodeInterpreterCallCodeDoneEvent ResponseCodeInterpreterCallCodeDoneEventPayload
     | ErrorEvent ErrorEventPayload
-    deriving stock (Show)
+    deriving stock (Generic, Show)
 
 -- Payload types for selected stream events with derived JSON instances
 data ResponseCreatedEventPayload = ResponseCreatedEventPayload
     { response :: ResponseObject
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseCreatedEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseInProgressEventPayload = ResponseInProgressEventPayload
     { response :: ResponseObject
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseInProgressEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseCompletedEventPayload = ResponseCompletedEventPayload
     { response :: ResponseObject
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseCompletedEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseFailedEventPayload = ResponseFailedEventPayload
     { response :: ResponseObject
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseFailedEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseOutputItemAddedEventPayload = ResponseOutputItemAddedEventPayload
     { output_index :: Natural
     , item :: OutputItem
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseOutputItemAddedEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseOutputItemDoneEventPayload = ResponseOutputItemDoneEventPayload
     { output_index :: Natural
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseOutputItemDoneEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseContentPartAddedEventPayload = ResponseContentPartAddedEventPayload
     { item_id :: Text
@@ -505,9 +492,7 @@ data ResponseContentPartAddedEventPayload = ResponseContentPartAddedEventPayload
     , part :: OutputContent
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseContentPartAddedEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseContentPartDoneEventPayload = ResponseContentPartDoneEventPayload
     { item_id :: Text
@@ -516,9 +501,7 @@ data ResponseContentPartDoneEventPayload = ResponseContentPartDoneEventPayload
     , part :: OutputContent
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseContentPartDoneEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 -- Remaining payloads
 data ResponseTextDeltaEventPayload = ResponseTextDeltaEventPayload
@@ -528,9 +511,7 @@ data ResponseTextDeltaEventPayload = ResponseTextDeltaEventPayload
     , delta :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseTextDeltaEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseTextDoneEventPayload = ResponseTextDoneEventPayload
     { item_id :: Text
@@ -539,9 +520,7 @@ data ResponseTextDoneEventPayload = ResponseTextDoneEventPayload
     , text :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseTextDoneEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseOutputTextAnnotationAddedEventPayload = ResponseOutputTextAnnotationAddedEventPayload
     { item_id :: Text
@@ -551,90 +530,70 @@ data ResponseOutputTextAnnotationAddedEventPayload = ResponseOutputTextAnnotatio
     , annotation :: Annotation
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseOutputTextAnnotationAddedEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseWebSearchCallInProgressEventPayload = ResponseWebSearchCallInProgressEventPayload
     { output_index :: Natural
     , item_id :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseWebSearchCallInProgressEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseWebSearchCallSearchingEventPayload = ResponseWebSearchCallSearchingEventPayload
     { output_index :: Natural
     , item_id :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseWebSearchCallSearchingEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseWebSearchCallCompletedEventPayload = ResponseWebSearchCallCompletedEventPayload
     { output_index :: Natural
     , item_id :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseWebSearchCallCompletedEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseFileSearchCallInProgressEventPayload = ResponseFileSearchCallInProgressEventPayload
     { output_index :: Natural
     , item_id :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseFileSearchCallInProgressEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseFileSearchCallSearchingEventPayload = ResponseFileSearchCallSearchingEventPayload
     { output_index :: Natural
     , item_id :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseFileSearchCallSearchingEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseFileSearchCallCompletedEventPayload = ResponseFileSearchCallCompletedEventPayload
     { output_index :: Natural
     , item_id :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseFileSearchCallCompletedEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseCodeInterpreterCallInProgressEventPayload = ResponseCodeInterpreterCallInProgressEventPayload
     { output_index :: Natural
     , item_id :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseCodeInterpreterCallInProgressEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseCodeInterpreterCallInterpretingEventPayload = ResponseCodeInterpreterCallInterpretingEventPayload
     { output_index :: Natural
     , item_id :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseCodeInterpreterCallInterpretingEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseCodeInterpreterCallCompletedEventPayload = ResponseCodeInterpreterCallCompletedEventPayload
     { output_index :: Natural
     , item_id :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseCodeInterpreterCallCompletedEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseCodeInterpreterCallCodeDeltaEventPayload = ResponseCodeInterpreterCallCodeDeltaEventPayload
     { output_index :: Natural
@@ -642,9 +601,7 @@ data ResponseCodeInterpreterCallCodeDeltaEventPayload = ResponseCodeInterpreterC
     , delta :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseCodeInterpreterCallCodeDeltaEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ResponseCodeInterpreterCallCodeDoneEventPayload = ResponseCodeInterpreterCallCodeDoneEventPayload
     { output_index :: Natural
@@ -652,9 +609,7 @@ data ResponseCodeInterpreterCallCodeDoneEventPayload = ResponseCodeInterpreterCa
     , code :: Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseCodeInterpreterCallCodeDoneEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 data ErrorEventPayload = ErrorEventPayload
     { code :: Maybe Text
@@ -662,9 +617,7 @@ data ErrorEventPayload = ErrorEventPayload
     , param :: Maybe Text
     , sequence_number :: Natural
     } deriving stock (Generic, Show)
-
-instance FromJSON ErrorEventPayload where
-    parseJSON = genericParseJSON Aeson.defaultOptions
+      deriving anyclass (FromJSON, ToJSON)
 
 instance FromJSON ResponseStreamEvent where
     parseJSON v@(Object o) = do
