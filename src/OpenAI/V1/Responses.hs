@@ -67,20 +67,15 @@ import OpenAI.V1.Models (Model)
 import OpenAI.V1.Tool (Tool, ToolChoice)
 import qualified Data.Text as Text
 
--- | Heterogeneous input for the Responses API
--- A single request input can be a raw text string or a list of input items.
-data Input
-    = Input_String Text
-    | Input_List (Vector InputItem)
+-- | Input for the Responses API: a list of input items
+newtype Input = Input (Vector InputItem)
     deriving stock (Generic, Show)
 
 instance ToJSON Input where
-    toJSON (Input_String t) = String t
-    toJSON (Input_List xs) = toJSON xs
+    toJSON (Input xs) = toJSON xs
 
 instance FromJSON Input where
-    parseJSON (String t) = pure (Input_String t)
-    parseJSON v = Input_List <$> parseJSON v
+    parseJSON v = Input <$> parseJSON v
 
 -- | Role of an input message
 data InputRole = User | System | Developer

@@ -32,7 +32,13 @@ main = do
     -- 1) Cute haiku test (no tools)
     let reqHaiku = Responses._CreateResponse
             { Responses.model = "gpt-5-mini"
-            , Responses.input = Just (Responses.Input_String "Write a short haiku about the sea.")
+            , Responses.input = Just (Responses.Input
+                [ Responses.Item_InputMessage
+                    { Responses.role = Responses.User
+                    , Responses.content = [ Responses.Input_Text{ Responses.text = "Write a short haiku about the sea." } ]
+                    , Responses.status = Nothing
+                    }
+                ])
             }
 
     createResponseStreamTyped reqHaiku onEvent
@@ -42,7 +48,13 @@ main = do
     -- 2) Web search example
     let reqSearch = Responses._CreateResponse
             { Responses.model = "gpt-5-mini"
-            , Responses.input = Just (Responses.Input_String "Use web_search to find current news about France and display a concise summary. Do not include citations, references, or URLs in the output; provide only the summary text.")
+            , Responses.input = Just (Responses.Input
+                [ Responses.Item_InputMessage
+                    { Responses.role = Responses.User
+                    , Responses.content = [ Responses.Input_Text{ Responses.text = "Use web_search to find current news about France and display a concise summary. Do not include citations, references, or URLs in the output; provide only the summary text." } ]
+                    , Responses.status = Nothing
+                    }
+                ])
             , Responses.tools = Just [ Tool.Tool_Web_Search ]
             }
 
@@ -54,7 +66,13 @@ main = do
     let reqCode = Responses._CreateResponse
             { Responses.model = "gpt-5-mini"
             , Responses.instructions = Just "You are a personal math tutor. When asked a math question, write and run code using the python tool to answer the question."
-            , Responses.input = Just (Responses.Input_String "I need to solve the equation 3x + 11 = 14. Can you help me?")
+            , Responses.input = Just (Responses.Input
+                [ Responses.Item_InputMessage
+                    { Responses.role = Responses.User
+                    , Responses.content = [ Responses.Input_Text{ Responses.text = "I need to solve the equation 3x + 11 = 14. Can you help me?" } ]
+                    , Responses.status = Nothing
+                    }
+                ])
             , Responses.tools = Just [ Tool.codeInterpreterAuto ]
             }
 
