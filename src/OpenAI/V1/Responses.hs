@@ -5,7 +5,7 @@ module OpenAI.V1.Responses
     ( -- * Main types
       CreateResponse(..)
     , _CreateResponse
-    , Input
+    , Input(..)
     , InputItem(..)
     , InputRole(..)
     , InputContent(..)
@@ -26,6 +26,30 @@ module OpenAI.V1.Responses
     , SummaryPart(..)
     , ReasoningText(..)
     , ResponseStreamEvent(..)
+    -- Payload types for ResponseStreamEvent
+    , ResponseCreatedEventPayload(..)
+    , ResponseInProgressEventPayload(..)
+    , ResponseCompletedEventPayload(..)
+    , ResponseFailedEventPayload(..)
+    , ResponseOutputItemAddedEventPayload(..)
+    , ResponseOutputItemDoneEventPayload(..)
+    , ResponseContentPartAddedEventPayload(..)
+    , ResponseContentPartDoneEventPayload(..)
+    , ResponseTextDeltaEventPayload(..)
+    , ResponseTextDoneEventPayload(..)
+    , ResponseOutputTextAnnotationAddedEventPayload(..)
+    , ResponseWebSearchCallInProgressEventPayload(..)
+    , ResponseWebSearchCallSearchingEventPayload(..)
+    , ResponseWebSearchCallCompletedEventPayload(..)
+    , ResponseFileSearchCallInProgressEventPayload(..)
+    , ResponseFileSearchCallSearchingEventPayload(..)
+    , ResponseFileSearchCallCompletedEventPayload(..)
+    , ResponseCodeInterpreterCallInProgressEventPayload(..)
+    , ResponseCodeInterpreterCallInterpretingEventPayload(..)
+    , ResponseCodeInterpreterCallCompletedEventPayload(..)
+    , ResponseCodeInterpreterCallCodeDeltaEventPayload(..)
+    , ResponseCodeInterpreterCallCodeDoneEventPayload(..)
+    , ErrorEventPayload(..)
     , ResponseObject(..)
     , ResponseUsage(..)
     , InputTokensDetails(..)
@@ -37,13 +61,27 @@ module OpenAI.V1.Responses
 
 import OpenAI.Prelude hiding (Input(..))
 import Data.Aeson (Object, (.:), (.:?))
+import qualified Data.Aeson as Aeson
+-- no TH; inline JSON instances for payloads
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
 import OpenAI.V1.Tool (Tool, ToolChoice)
+import qualified Data.Text as Text
 
 -- | Heterogeneous input for the Responses API
--- Input is a list of input items (for a simple string, use a single Input_Text item)
-type Input = Vector InputItem
+-- A single request input can be a raw text string or a list of input items.
+data Input
+    = Input_String Text
+    | Input_List (Vector InputItem)
+    deriving stock (Generic, Show)
+
+instance ToJSON Input where
+    toJSON (Input_String t) = String t
+    toJSON (Input_List xs) = toJSON xs
+
+instance FromJSON Input where
+    parseJSON (String t) = pure (Input_String t)
+    parseJSON v = Input_List <$> parseJSON v
 
 -- | Role of an input message
 data InputRole = User | System | Developer
@@ -68,6 +106,8 @@ inputContentOptions =
     aesonOptions
         { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
         , tagSingleConstructors = True
+        -- Keep constructor names like "Input_Text" -> "input_text"
+        , constructorTagModifier = labelModifier
         }
 
 instance FromJSON InputContent where
@@ -124,29 +164,20 @@ instance ToJSON OutputContent where
     toJSON = genericToJSON outputContentOptions
 
 -- | An output message item
-data OutputMessage = Item_Message
+data OutputMessage = OutputMessage
     { id :: Text
     , role :: Text
     , content :: Vector OutputContent
     , status :: Text
     } deriving stock (Generic, Show)
 
-outputMessageOptions :: Options
-outputMessageOptions =
-    aesonOptions
-        { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
-        , tagSingleConstructors = True
-        , constructorTagModifier = stripPrefix "Item_"
-        }
-
 instance FromJSON OutputMessage where
-    parseJSON = genericParseJSON outputMessageOptions
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON OutputMessage where
-    toJSON = genericToJSON outputMessageOptions
+    toJSON = genericToJSON aesonOptions
 
--- | A generated output item. We support message items explicitly and preserve
--- unknown items as raw JSON values for forward compatibility.
+-- | A generated output item.
 data OutputItem
     = Item_OutputMessage OutputMessage
     | Item_FunctionToolCall FunctionToolCall
@@ -155,7 +186,6 @@ data OutputItem
     | Item_FileSearchToolCall FileSearchToolCall
     | Item_CodeInterpreterToolCall CodeInterpreterToolCall
     | Item_Reasoning ReasoningItem
-    | Item_OutputUnknown Value
     deriving stock (Show)
 
 instance FromJSON OutputItem where
@@ -169,8 +199,9 @@ instance FromJSON OutputItem where
             Just "code_interpreter_call" -> Item_CodeInterpreterToolCall <$> parseJSON v
             Just "function_call_output" -> Item_FunctionToolCallOutput <$> parseJSON v
             Just "reasoning" -> Item_Reasoning <$> parseJSON v
-            _ -> pure (Item_OutputUnknown v)
-    parseJSON other = pure (Item_OutputUnknown other)
+            Just other -> fail ("Unknown OutputItem type: " <> Text.unpack other)
+            Nothing -> fail "Missing type field for OutputItem"
+    parseJSON _ = fail "Expected object for OutputItem"
 
 instance ToJSON OutputItem where
     toJSON (Item_OutputMessage m) = toJSON m
@@ -180,7 +211,6 @@ instance ToJSON OutputItem where
     toJSON (Item_FileSearchToolCall m) = toJSON m
     toJSON (Item_CodeInterpreterToolCall m) = toJSON m
     toJSON (Item_Reasoning r) = toJSON r
-    toJSON (Item_OutputUnknown v) = v
 
 -- | Function tool call output item
 data FunctionToolCall = FunctionToolCall
@@ -391,245 +421,280 @@ instance FromJSON ReasoningItem where
 instance ToJSON ReasoningItem where
     toJSON = genericToJSON aesonOptions
 
--- | Streaming events for /v1/responses (core subset with fallback)
+-- | Streaming events for /v1/responses
 data ResponseStreamEvent
-    = ResponseCreatedEvent
-        { response :: ResponseObject
-        , sequence_number :: Natural
-        }
-    | ResponseInProgressEvent
-        { response :: ResponseObject
-        , sequence_number :: Natural
-        }
-    | ResponseCompletedEvent
-        { response :: ResponseObject
-        , sequence_number :: Natural
-        }
-    | ResponseFailedEvent
-        { response :: ResponseObject
-        , sequence_number :: Natural
-        }
-    | ResponseOutputItemAddedEvent
-        { output_index :: Natural
-        , item :: OutputItem
-        , sequence_number :: Natural
-        }
-    | ResponseOutputItemDoneEvent
-        { output_index :: Natural
-        , sequence_number :: Natural
-        }
-    | ResponseContentPartAddedEvent
-        { item_id :: Text
-        , output_index :: Natural
-        , content_index :: Natural
-        , part :: OutputContent
-        , sequence_number :: Natural
-        }
-    | ResponseContentPartDoneEvent
-        { item_id :: Text
-        , output_index :: Natural
-        , content_index :: Natural
-        , part :: OutputContent
-        , sequence_number :: Natural
-        }
-    | ResponseTextDeltaEvent
-        { item_id :: Text
-        , output_index :: Natural
-        , content_index :: Natural
-        , delta :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseTextDoneEvent
-        { item_id :: Text
-        , output_index :: Natural
-        , content_index :: Natural
-        , text :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseOutputTextAnnotationAddedEvent
-        { item_id :: Text
-        , output_index :: Natural
-        , content_index :: Natural
-        , annotation_index :: Natural
-        , annotation :: Annotation
-        , sequence_number :: Natural
-        }
-    | ResponseWebSearchCallInProgressEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseWebSearchCallSearchingEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseWebSearchCallCompletedEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseFileSearchCallInProgressEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseFileSearchCallSearchingEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseFileSearchCallCompletedEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseCodeInterpreterCallInProgressEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseCodeInterpreterCallInterpretingEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseCodeInterpreterCallCompletedEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseCodeInterpreterCallCodeDeltaEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , delta :: Text
-        , sequence_number :: Natural
-        }
-    | ResponseCodeInterpreterCallCodeDoneEvent
-        { output_index :: Natural
-        , item_id :: Text
-        , code :: Text
-        , sequence_number :: Natural
-        }
-    | ErrorEvent
-        { error_code :: Maybe Text
-        , message :: Text
-        , param :: Maybe Text
-        , sequence_number :: Natural
-        }
-    -- | Fallback for forward-compatibility: if the server sends a new/unknown
-    -- streaming event type, we preserve the raw JSON payload so callers can
-    -- choose to ignore, log, or inspect it without breaking.
-    | UnknownEvent Value
+    = ResponseCreatedEvent ResponseCreatedEventPayload
+    | ResponseInProgressEvent ResponseInProgressEventPayload
+    | ResponseCompletedEvent ResponseCompletedEventPayload
+    | ResponseFailedEvent ResponseFailedEventPayload
+    | ResponseOutputItemAddedEvent ResponseOutputItemAddedEventPayload
+    | ResponseOutputItemDoneEvent ResponseOutputItemDoneEventPayload
+    | ResponseContentPartAddedEvent ResponseContentPartAddedEventPayload
+    | ResponseContentPartDoneEvent ResponseContentPartDoneEventPayload
+    | ResponseTextDeltaEvent ResponseTextDeltaEventPayload
+    | ResponseTextDoneEvent ResponseTextDoneEventPayload
+    | ResponseOutputTextAnnotationAddedEvent ResponseOutputTextAnnotationAddedEventPayload
+    | ResponseWebSearchCallInProgressEvent ResponseWebSearchCallInProgressEventPayload
+    | ResponseWebSearchCallSearchingEvent ResponseWebSearchCallSearchingEventPayload
+    | ResponseWebSearchCallCompletedEvent ResponseWebSearchCallCompletedEventPayload
+    | ResponseFileSearchCallInProgressEvent ResponseFileSearchCallInProgressEventPayload
+    | ResponseFileSearchCallSearchingEvent ResponseFileSearchCallSearchingEventPayload
+    | ResponseFileSearchCallCompletedEvent ResponseFileSearchCallCompletedEventPayload
+    | ResponseCodeInterpreterCallInProgressEvent ResponseCodeInterpreterCallInProgressEventPayload
+    | ResponseCodeInterpreterCallInterpretingEvent ResponseCodeInterpreterCallInterpretingEventPayload
+    | ResponseCodeInterpreterCallCompletedEvent ResponseCodeInterpreterCallCompletedEventPayload
+    | ResponseCodeInterpreterCallCodeDeltaEvent ResponseCodeInterpreterCallCodeDeltaEventPayload
+    | ResponseCodeInterpreterCallCodeDoneEvent ResponseCodeInterpreterCallCodeDoneEventPayload
+    | ErrorEvent ErrorEventPayload
     deriving stock (Show)
+
+-- Payload types for selected stream events with derived JSON instances
+data ResponseCreatedEventPayload = ResponseCreatedEventPayload
+    { response :: ResponseObject
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseCreatedEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseInProgressEventPayload = ResponseInProgressEventPayload
+    { response :: ResponseObject
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseInProgressEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseCompletedEventPayload = ResponseCompletedEventPayload
+    { response :: ResponseObject
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseCompletedEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseFailedEventPayload = ResponseFailedEventPayload
+    { response :: ResponseObject
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseFailedEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseOutputItemAddedEventPayload = ResponseOutputItemAddedEventPayload
+    { output_index :: Natural
+    , item :: OutputItem
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseOutputItemAddedEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseOutputItemDoneEventPayload = ResponseOutputItemDoneEventPayload
+    { output_index :: Natural
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseOutputItemDoneEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseContentPartAddedEventPayload = ResponseContentPartAddedEventPayload
+    { item_id :: Text
+    , output_index :: Natural
+    , content_index :: Natural
+    , part :: OutputContent
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseContentPartAddedEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseContentPartDoneEventPayload = ResponseContentPartDoneEventPayload
+    { item_id :: Text
+    , output_index :: Natural
+    , content_index :: Natural
+    , part :: OutputContent
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseContentPartDoneEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+-- Remaining payloads
+data ResponseTextDeltaEventPayload = ResponseTextDeltaEventPayload
+    { item_id :: Text
+    , output_index :: Natural
+    , content_index :: Natural
+    , delta :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseTextDeltaEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseTextDoneEventPayload = ResponseTextDoneEventPayload
+    { item_id :: Text
+    , output_index :: Natural
+    , content_index :: Natural
+    , text :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseTextDoneEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseOutputTextAnnotationAddedEventPayload = ResponseOutputTextAnnotationAddedEventPayload
+    { item_id :: Text
+    , output_index :: Natural
+    , content_index :: Natural
+    , annotation_index :: Natural
+    , annotation :: Annotation
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseOutputTextAnnotationAddedEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseWebSearchCallInProgressEventPayload = ResponseWebSearchCallInProgressEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseWebSearchCallInProgressEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseWebSearchCallSearchingEventPayload = ResponseWebSearchCallSearchingEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseWebSearchCallSearchingEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseWebSearchCallCompletedEventPayload = ResponseWebSearchCallCompletedEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseWebSearchCallCompletedEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseFileSearchCallInProgressEventPayload = ResponseFileSearchCallInProgressEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseFileSearchCallInProgressEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseFileSearchCallSearchingEventPayload = ResponseFileSearchCallSearchingEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseFileSearchCallSearchingEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseFileSearchCallCompletedEventPayload = ResponseFileSearchCallCompletedEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseFileSearchCallCompletedEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseCodeInterpreterCallInProgressEventPayload = ResponseCodeInterpreterCallInProgressEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseCodeInterpreterCallInProgressEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseCodeInterpreterCallInterpretingEventPayload = ResponseCodeInterpreterCallInterpretingEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseCodeInterpreterCallInterpretingEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseCodeInterpreterCallCompletedEventPayload = ResponseCodeInterpreterCallCompletedEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseCodeInterpreterCallCompletedEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseCodeInterpreterCallCodeDeltaEventPayload = ResponseCodeInterpreterCallCodeDeltaEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , delta :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseCodeInterpreterCallCodeDeltaEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ResponseCodeInterpreterCallCodeDoneEventPayload = ResponseCodeInterpreterCallCodeDoneEventPayload
+    { output_index :: Natural
+    , item_id :: Text
+    , code :: Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ResponseCodeInterpreterCallCodeDoneEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
+
+data ErrorEventPayload = ErrorEventPayload
+    { code :: Maybe Text
+    , message :: Text
+    , param :: Maybe Text
+    , sequence_number :: Natural
+    } deriving stock (Generic, Show)
+
+instance FromJSON ErrorEventPayload where
+    parseJSON = genericParseJSON Aeson.defaultOptions
 
 instance FromJSON ResponseStreamEvent where
     parseJSON v@(Object o) = do
         ty <- o .: "type"
         case (ty :: Text) of
-            "response.created" -> ResponseCreatedEvent
-                <$> o .: "response"
-                <*> o .: "sequence_number"
-            "response.in_progress" -> ResponseInProgressEvent
-                <$> o .: "response"
-                <*> o .: "sequence_number"
-            "response.completed" -> ResponseCompletedEvent
-                <$> o .: "response"
-                <*> o .: "sequence_number"
-            "response.failed" -> ResponseFailedEvent
-                <$> o .: "response"
-                <*> o .: "sequence_number"
-            "response.output_item.added" -> ResponseOutputItemAddedEvent
-                <$> o .: "output_index"
-                <*> o .: "item"
-                <*> o .: "sequence_number"
-            "response.output_item.done" -> ResponseOutputItemDoneEvent
-                <$> o .: "output_index"
-                <*> o .: "sequence_number"
-            "response.content_part.added" -> ResponseContentPartAddedEvent
-                <$> o .: "item_id"
-                <*> o .: "output_index"
-                <*> o .: "content_index"
-                <*> o .: "part"
-                <*> o .: "sequence_number"
-            "response.content_part.done" -> ResponseContentPartDoneEvent
-                <$> o .: "item_id"
-                <*> o .: "output_index"
-                <*> o .: "content_index"
-                <*> o .: "part"
-                <*> o .: "sequence_number"
-            "response.output_text.delta" -> ResponseTextDeltaEvent
-                <$> o .: "item_id"
-                <*> o .: "output_index"
-                <*> o .: "content_index"
-                <*> o .: "delta"
-                <*> o .: "sequence_number"
-            "response.output_text.done" -> ResponseTextDoneEvent
-                <$> o .: "item_id"
-                <*> o .: "output_index"
-                <*> o .: "content_index"
-                <*> o .: "text"
-                <*> o .: "sequence_number"
-            "response.output_text.annotation.added" -> ResponseOutputTextAnnotationAddedEvent
-                <$> o .: "item_id"
-                <*> o .: "output_index"
-                <*> o .: "content_index"
-                <*> o .: "annotation_index"
-                <*> o .: "annotation"
-                <*> o .: "sequence_number"
-            "response.web_search_call.in_progress" -> ResponseWebSearchCallInProgressEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "sequence_number"
-            "response.web_search_call.searching" -> ResponseWebSearchCallSearchingEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "sequence_number"
-            "response.web_search_call.completed" -> ResponseWebSearchCallCompletedEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "sequence_number"
-            "response.file_search_call.in_progress" -> ResponseFileSearchCallInProgressEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "sequence_number"
-            "response.file_search_call.searching" -> ResponseFileSearchCallSearchingEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "sequence_number"
-            "response.file_search_call.completed" -> ResponseFileSearchCallCompletedEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "sequence_number"
-            "response.code_interpreter_call.in_progress" -> ResponseCodeInterpreterCallInProgressEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "sequence_number"
-            "response.code_interpreter_call.interpreting" -> ResponseCodeInterpreterCallInterpretingEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "sequence_number"
-            "response.code_interpreter_call.completed" -> ResponseCodeInterpreterCallCompletedEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "sequence_number"
-            "response.code_interpreter_call_code.delta" -> ResponseCodeInterpreterCallCodeDeltaEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "delta"
-                <*> o .: "sequence_number"
-            "response.code_interpreter_call_code.done" -> ResponseCodeInterpreterCallCodeDoneEvent
-                <$> o .: "output_index"
-                <*> o .: "item_id"
-                <*> o .: "code"
-                <*> o .: "sequence_number"
-            "error" -> ErrorEvent
-                <$> o .:? "code"
-                <*> o .: "message"
-                <*> o .:? "param"
-                <*> o .: "sequence_number"
-            _ -> pure (UnknownEvent v)
-    parseJSON other = pure (UnknownEvent other)
+            "response.created" -> ResponseCreatedEvent <$> parseJSON v
+            "response.in_progress" -> ResponseInProgressEvent <$> parseJSON v
+            "response.completed" -> ResponseCompletedEvent <$> parseJSON v
+            "response.failed" -> ResponseFailedEvent <$> parseJSON v
+            "response.output_item.added" -> ResponseOutputItemAddedEvent <$> parseJSON v
+            "response.output_item.done" -> ResponseOutputItemDoneEvent <$> parseJSON v
+            "response.content_part.added" -> ResponseContentPartAddedEvent <$> parseJSON v
+            "response.content_part.done" -> ResponseContentPartDoneEvent <$> parseJSON v
+            "response.output_text.delta" -> ResponseTextDeltaEvent <$> parseJSON v
+            "response.output_text.done" -> ResponseTextDoneEvent <$> parseJSON v
+            "response.output_text.annotation.added" -> ResponseOutputTextAnnotationAddedEvent <$> parseJSON v
+            "response.web_search_call.in_progress" -> ResponseWebSearchCallInProgressEvent <$> parseJSON v
+            "response.web_search_call.searching" -> ResponseWebSearchCallSearchingEvent <$> parseJSON v
+            "response.web_search_call.completed" -> ResponseWebSearchCallCompletedEvent <$> parseJSON v
+            "response.file_search_call.in_progress" -> ResponseFileSearchCallInProgressEvent <$> parseJSON v
+            "response.file_search_call.searching" -> ResponseFileSearchCallSearchingEvent <$> parseJSON v
+            "response.file_search_call.completed" -> ResponseFileSearchCallCompletedEvent <$> parseJSON v
+            "response.code_interpreter_call.in_progress" -> ResponseCodeInterpreterCallInProgressEvent <$> parseJSON v
+            "response.code_interpreter_call.interpreting" -> ResponseCodeInterpreterCallInterpretingEvent <$> parseJSON v
+            "response.code_interpreter_call.completed" -> ResponseCodeInterpreterCallCompletedEvent <$> parseJSON v
+            "response.code_interpreter_call_code.delta" -> ResponseCodeInterpreterCallCodeDeltaEvent <$> parseJSON v
+            "response.code_interpreter_call_code.done" -> ResponseCodeInterpreterCallCodeDoneEvent <$> parseJSON v
+            "error" -> ErrorEvent <$> parseJSON v
+            other -> fail ("Unknown ResponseStreamEvent type: " <> Text.unpack other)
+    parseJSON _ = fail "Expected object for ResponseStreamEvent"
 
 -- | Usage statistics for the response request
 data ResponseUsage = ResponseUsage
@@ -680,7 +745,7 @@ data ResponseObject = ResponseObject
 -- | Request body for /v1/responses
 data CreateResponse = CreateResponse
     { model :: Model
-    , input :: Maybe (Vector InputItem)
+    , input :: Maybe Input
     , include :: Maybe (Vector Text)
     , parallel_tool_calls :: Maybe Bool
     , store :: Maybe Bool

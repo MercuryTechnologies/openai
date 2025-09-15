@@ -891,7 +891,7 @@ main = do
             createResponse
               Responses._CreateResponse
                 { Responses.model = chatModel,
-                  Responses.input = Just [Responses.Item_InputMessage{ Responses.role = Responses.User, Responses.content = [Responses.Input_Text "Say hello in one sentence."], Responses.status = Nothing }],
+                  Responses.input = Just (Responses.Input_String "Say hello in one sentence."),
                   Responses.include = Nothing,
                   Responses.parallel_tool_calls = Nothing,
                   Responses.store = Nothing,
@@ -912,7 +912,7 @@ main = do
           let req =
                 Responses._CreateResponse
                   { Responses.model = chatModel,
-                    Responses.input = Just [Responses.Item_InputMessage{ Responses.role = Responses.User, Responses.content = [Responses.Input_Text "Stream a short haiku about the sea."], Responses.status = Nothing }],
+                    Responses.input = Just (Responses.Input_String "Stream a short haiku about the sea."),
                     Responses.include = Nothing,
                     Responses.parallel_tool_calls = Nothing,
                     Responses.store = Nothing,
@@ -931,9 +931,9 @@ main = do
 
           let onEvent (Left _err) = Concurrent.putMVar done ()
               onEvent (Right ev) = case ev of
-                Responses.ResponseTextDeltaEvent {Responses.delta} ->
-                  IORef.modifyIORef' acc (<> delta)
-                Responses.ResponseCompletedEvent {} ->
+                Responses.ResponseTextDeltaEvent Responses.ResponseTextDeltaEventPayload{ Responses.delta = d } ->
+                  IORef.modifyIORef' acc (<> d)
+                Responses.ResponseCompletedEvent _ ->
                   Concurrent.putMVar done ()
                 _ -> pure ()
 
@@ -950,7 +950,7 @@ main = do
           let req =
                 Responses._CreateResponse
                   { Responses.model = chatModel,
-                    Responses.input = Just [Responses.Item_InputMessage{ Responses.role = Responses.User, Responses.content = [Responses.Input_Text "Solve 3x + 11 = 14 and provide x as a number. Use the code interpreter."], Responses.status = Nothing }],
+                    Responses.input = Just (Responses.Input_String "Solve 3x + 11 = 14 and provide x as a number. Use the code interpreter."),
                     Responses.include = Nothing,
                     Responses.parallel_tool_calls = Nothing,
                     Responses.store = Nothing,
@@ -970,15 +970,15 @@ main = do
 
           let onEvent (Left _err) = Concurrent.putMVar done ()
               onEvent (Right ev) = case ev of
-                Responses.ResponseTextDeltaEvent {Responses.delta} ->
-                  IORef.modifyIORef' acc (<> delta)
-                Responses.ResponseCodeInterpreterCallInProgressEvent {} ->
+                Responses.ResponseTextDeltaEvent Responses.ResponseTextDeltaEventPayload{ Responses.delta = d } ->
+                  IORef.modifyIORef' acc (<> d)
+                Responses.ResponseCodeInterpreterCallInProgressEvent _ ->
                   IORef.writeIORef sawCI True
-                Responses.ResponseCodeInterpreterCallInterpretingEvent {} ->
+                Responses.ResponseCodeInterpreterCallInterpretingEvent _ ->
                   IORef.writeIORef sawCI True
-                Responses.ResponseCodeInterpreterCallCompletedEvent {} -> do
+                Responses.ResponseCodeInterpreterCallCompletedEvent _ -> do
                   IORef.writeIORef sawCI True
-                Responses.ResponseCompletedEvent {} ->
+                Responses.ResponseCompletedEvent _ ->
                   Concurrent.putMVar done ()
                 _ -> pure ()
 

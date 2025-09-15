@@ -21,7 +21,7 @@ main = do
 
     let req = Responses._CreateResponse
             { Responses.model = "gpt-5"
-            , Responses.input = Just [Responses.InputItem{ Responses.role = Nothing, Responses.content = [Responses.Input_Text "Tell me a three sentence bedtime story about a unicorn."] }]
+            , Responses.input = Just (Responses.Input_String "Tell me a three sentence bedtime story about a unicorn.")
             }
 
     resp <- createResponse req

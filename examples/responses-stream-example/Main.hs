@@ -23,16 +23,16 @@ main = do
     let onEvent (Left err) = hPutStrLn stderr ("stream error: " <> T.unpack err)
         onEvent (Right ev) = case ev of
             -- Only print model text deltas and newline on part done
-            Responses.ResponseTextDeltaEvent{ Responses.delta } ->
-                TIO.putStr delta >> hFlush stdout
-            Responses.ResponseTextDoneEvent{} -> putStrLn ""
+            Responses.ResponseTextDeltaEvent Responses.ResponseTextDeltaEventPayload{ Responses.delta = d } ->
+                TIO.putStr d >> hFlush stdout
+            Responses.ResponseTextDoneEvent _ -> putStrLn ""
             -- Ignore all other events for a clean output
             _ -> pure ()
 
     -- 1) Cute haiku test (no tools)
     let reqHaiku = Responses._CreateResponse
             { Responses.model = "gpt-5-mini"
-            , Responses.input = Just [Responses.Item_InputMessage{ Responses.role = Responses.User, Responses.content = [Responses.Input_Text "Write a short haiku about the sea."], Responses.status = Nothing }]
+            , Responses.input = Just (Responses.Input_String "Write a short haiku about the sea.")
             }
 
     createResponseStreamTyped reqHaiku onEvent
@@ -42,7 +42,7 @@ main = do
     -- 2) Web search example
     let reqSearch = Responses._CreateResponse
             { Responses.model = "gpt-5-mini"
-            , Responses.input = Just [Responses.Item_InputMessage{ Responses.role = Responses.User, Responses.content = [Responses.Input_Text "Use web_search to find current news about France and display a concise summary. Include citations."], Responses.status = Nothing }]
+            , Responses.input = Just (Responses.Input_String "Use web_search to find current news about France and display a concise summary. Do not include citations, references, or URLs in the output; provide only the summary text.")
             , Responses.tools = Just [ Tool.Tool_Web_Search ]
             }
 
@@ -54,7 +54,7 @@ main = do
     let reqCode = Responses._CreateResponse
             { Responses.model = "gpt-5-mini"
             , Responses.instructions = Just "You are a personal math tutor. When asked a math question, write and run code using the python tool to answer the question."
-            , Responses.input = Just [Responses.Item_InputMessage{ Responses.role = Responses.User, Responses.content = [Responses.Input_Text "I need to solve the equation 3x + 11 = 14. Can you help me?"], Responses.status = Nothing }]
+            , Responses.input = Just (Responses.Input_String "I need to solve the equation 3x + 11 = 14. Can you help me?")
             , Responses.tools = Just [ Tool.codeInterpreterAuto ]
             }
 
