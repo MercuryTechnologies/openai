@@ -1,3 +1,4 @@
 .direnv
 dist-newstyle
 .envrc
+.DS_Store
