@@ -7,20 +7,19 @@ module Main where
 
 import Control.Monad (foldM, when)
 import Data.Aeson (Value (..), (.=))
+import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as ByteString.Lazy
 import Data.Text (Text)
+import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text.Encoding
+import qualified Data.Text.IO as Text.IO
 import Data.Vector (Vector)
+import qualified Data.Vector as Vector
 import GHC.Exts (toList)
 import OpenAI.V1
 import OpenAI.V1.Chat.Completions
 import OpenAI.V1.Tool
 import OpenAI.V1.ToolCall
-
-import qualified Data.Aeson as Aeson
-import qualified Data.ByteString.Lazy as ByteString.Lazy
-import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text.Encoding
-import qualified Data.Text.IO as Text.IO
-import qualified Data.Vector as Vector
 import qualified System.Environment as Environment
 
 -- | Mock weather data for different cities
@@ -55,8 +54,8 @@ processWeatherToolCall (ToolCall_Function toolCallId function) = do
   -- Return a Tool message with the result
   return $
     Tool
-      { content = [Text weatherResult],
-        tool_call_id = toolCallId
+      { content = [Text weatherResult]
+      , tool_call_id = toolCallId
       }
 
 -- | Define the weather tool
@@ -64,24 +63,24 @@ weatherTool :: Tool
 weatherTool =
   Tool_Function $
     OpenAI.V1.Tool.Function
-      { description = Just "Get current weather information for a city",
-        name = "get_weather",
-        parameters =
+      { description = Just "Get current weather information for a city"
+      , name = "get_weather"
+      , parameters =
           Just $
             Aeson.object
-              [ "type" .= ("object" :: Text),
-                "properties"
+              [ "type" .= ("object" :: Text)
+              , "properties"
                   .= Aeson.object
                     [ "city"
                         .= Aeson.object
-                          [ "type" .= ("string" :: Text),
-                            "description" .= ("The city name to get weather for" :: Text)
+                          [ "type" .= ("string" :: Text)
+                          , "description" .= ("The city name to get weather for" :: Text)
                           ]
-                    ],
-                "required" .= (["city"] :: [Text]),
-                "additionalProperties" .= False
-              ],
-        strict = Just True
+                    ]
+              , "required" .= (["city"] :: [Text])
+              , "additionalProperties" .= False
+              ]
+      , strict = Just True
       }
 
 -- | Convert a Message Text to Message (Vector Content)
@@ -90,11 +89,11 @@ convertMessage (System {content, name}) = System {content = [Text content], name
 convertMessage (User {content, name}) = User {content = [Text content], name = name}
 convertMessage (Assistant {assistant_content, refusal, name, assistant_audio, tool_calls}) =
   Assistant
-    { assistant_content = fmap (\c -> [Text c]) assistant_content,
-      refusal = refusal,
-      name = name,
-      assistant_audio = assistant_audio,
-      tool_calls = tool_calls
+    { assistant_content = fmap (\c -> [Text c]) assistant_content
+    , refusal = refusal
+    , name = name
+    , assistant_audio = assistant_audio
+    , tool_calls = tool_calls
     }
 convertMessage (Tool {content, tool_call_id}) = Tool {content = [Text content], tool_call_id = tool_call_id}
 
@@ -119,8 +118,8 @@ chatLoop createChatCompletion messages = do
   -- Add user message to conversation
   let userMessage =
         User
-          { content = [Text userInput],
-            name = Nothing
+          { content = [Text userInput]
+          , name = Nothing
           }
       updatedMessages = messages <> [userMessage]
 
@@ -128,10 +127,10 @@ chatLoop createChatCompletion messages = do
   response <-
     createChatCompletion
       _CreateChatCompletion
-        { messages = updatedMessages,
-          model = "gpt-4o-mini",
-          tools = Just [weatherTool],
-          tool_choice = Just ToolChoiceAuto
+        { messages = updatedMessages
+        , model = "gpt-4o-mini"
+        , tools = Just [weatherTool]
+        , tool_choice = Just ToolChoiceAuto
         }
 
   let ChatCompletionObject {choices} = response
@@ -169,10 +168,10 @@ processChoice createChatCompletion messages choice = do
       finalResponse <-
         createChatCompletion
           _CreateChatCompletion
-            { messages = messagesWithTools,
-              model = "gpt-4o-mini",
-              tools = Just [weatherTool],
-              tool_choice = Just ToolChoiceAuto
+            { messages = messagesWithTools
+            , model = "gpt-4o-mini"
+            , tools = Just [weatherTool]
+            , tool_choice = Just ToolChoiceAuto
             }
 
       let ChatCompletionObject {choices = finalChoices} = finalResponse
@@ -219,8 +218,8 @@ main = do
   -- Initial system message
   let systemMessage =
         System
-          { content = [Text "You are a helpful weather assistant. Use the get_weather tool to provide current weather information when users ask about weather in specific cities. Be conversational and helpful."],
-            name = Nothing
+          { content = [Text "You are a helpful weather assistant. Use the get_weather tool to provide current weather information when users ask about weather in specific cities. Be conversational and helpful."]
+          , name = Nothing
           }
 
   -- Start the chat loop

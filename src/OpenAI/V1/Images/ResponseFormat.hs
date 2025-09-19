@@ -1,21 +1,22 @@
 -- | The response format
 module OpenAI.V1.Images.ResponseFormat
-    ( -- * Types
-      ResponseFormat(..)
-    ) where
+  ( -- * Types
+    ResponseFormat (..),
+  )
+where
 
 import OpenAI.Prelude
 
 -- | The format in which the generated images are returned
 data ResponseFormat = URL | B64_JSON
-    deriving stock (Generic, Show)
+  deriving stock (Generic, Show)
 
 instance FromJSON ResponseFormat where
-    parseJSON = genericParseJSON aesonOptions
+  parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON ResponseFormat where
-    toJSON = genericToJSON aesonOptions
+  toJSON = genericToJSON aesonOptions
 
 instance ToHttpApiData ResponseFormat where
-    toUrlPiece URL = "url"
-    toUrlPiece B64_JSON = "b64_json"
+  toUrlPiece URL = "url"
+  toUrlPiece B64_JSON = "b64_json"

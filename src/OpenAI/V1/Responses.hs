@@ -85,9 +85,9 @@ data InputContent
 inputContentOptions :: Options
 inputContentOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True,
-      -- Keep constructor names like "Input_Text" -> "input_text"
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
+    , -- Keep constructor names like "Input_Text" -> "input_text"
       constructorTagModifier = labelModifier
     }
 
@@ -100,22 +100,22 @@ instance ToJSON InputContent where
 -- | An input item
 data InputItem
   = Item_Input_Message
-      { role :: InputRole,
-        content :: Vector InputContent,
-        status :: Maybe Text
+      { role :: InputRole
+      , content :: Vector InputContent
+      , status :: Maybe Text
       }
   | Item_Input_Function_Call
-      { id :: Maybe Text,
-        call_id :: Text,
-        name :: Text,
-        arguments :: Text,
-        status :: Maybe Text
+      { id :: Maybe Text
+      , call_id :: Text
+      , name :: Text
+      , arguments :: Text
+      , status :: Maybe Text
       }
   | Item_Input_Function_Call_Output
-      { id :: Maybe Text,
-        call_id :: Text,
-        output :: Text,
-        status :: Maybe Text
+      { id :: Maybe Text
+      , call_id :: Text
+      , output :: Text
+      , status :: Maybe Text
       }
   | Item_Input_Item_Reference
       { id :: Maybe Text
@@ -125,9 +125,9 @@ data InputItem
 inputItemOptions :: Options
 inputItemOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True,
-      constructorTagModifier = stripPrefix "Item_Input_"
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
+    , constructorTagModifier = stripPrefix "Item_Input_"
     }
 
 instance FromJSON InputItem where
@@ -191,9 +191,9 @@ adjustKey key f obj =
 -- | Output content from the model
 data OutputContent
   = Output_Text
-      { text :: Text,
-        annotations :: Vector Value,
-        logprobs :: Maybe (Vector Value)
+      { text :: Text
+      , annotations :: Vector Value
+      , logprobs :: Maybe (Vector Value)
       }
   | Refusal
       {refusal :: Text}
@@ -202,8 +202,8 @@ data OutputContent
 outputContentOptions :: Options
 outputContentOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
     }
 
 instance FromJSON OutputContent where
@@ -214,10 +214,10 @@ instance ToJSON OutputContent where
 
 -- | An output message item
 data OutputMessage = OutputMessage
-  { id :: Text,
-    role :: Text,
-    content :: Vector OutputContent,
-    status :: Text
+  { id :: Text
+  , role :: Text
+  , content :: Vector OutputContent
+  , status :: Text
   }
   deriving stock (Generic, Show)
 
@@ -230,57 +230,57 @@ instance ToJSON OutputMessage where
 -- | A generated output item.
 data OutputItem
   = Item_OutputMessage
-      { message_id :: Text,
-        message_role :: Text,
-        message_content :: Vector OutputContent,
-        message_status :: Text
+      { message_id :: Text
+      , message_role :: Text
+      , message_content :: Vector OutputContent
+      , message_status :: Text
       }
   | Item_FunctionToolCall
-      { function_id :: Maybe Text,
-        function_call_id :: Text,
-        function_name :: Text,
-        function_arguments :: Text,
-        function_status :: Maybe Text
+      { function_id :: Maybe Text
+      , function_call_id :: Text
+      , function_name :: Text
+      , function_arguments :: Text
+      , function_status :: Maybe Text
       }
   | Item_WebSearchToolCall
-      { web_search_id :: Text,
-        web_search_status :: Text,
-        web_search_action :: Maybe WebSearchAction
+      { web_search_id :: Text
+      , web_search_status :: Text
+      , web_search_action :: Maybe WebSearchAction
       }
   | Item_FunctionToolCallOutput
-      { function_output_id :: Maybe Text,
-        function_output_call_id :: Text,
-        function_output_output :: Text,
-        function_output_status :: Maybe Text
+      { function_output_id :: Maybe Text
+      , function_output_call_id :: Text
+      , function_output_output :: Text
+      , function_output_status :: Maybe Text
       }
   | Item_FileSearchToolCall
-      { file_search_id :: Text,
-        file_search_status :: Text,
-        file_search_queries :: Vector Text,
-        file_search_results :: Maybe (Vector FileSearchResult)
+      { file_search_id :: Text
+      , file_search_status :: Text
+      , file_search_queries :: Vector Text
+      , file_search_results :: Maybe (Vector FileSearchResult)
       }
   | Item_CodeInterpreterToolCall
-      { code_interpreter_id :: Text,
-        code_interpreter_status :: Text,
-        code_interpreter_container_id :: Maybe Text,
-        code_interpreter_code :: Maybe Text,
-        code_interpreter_outputs :: Maybe (Vector CodeInterpreterOutput)
+      { code_interpreter_id :: Text
+      , code_interpreter_status :: Text
+      , code_interpreter_container_id :: Maybe Text
+      , code_interpreter_code :: Maybe Text
+      , code_interpreter_outputs :: Maybe (Vector CodeInterpreterOutput)
       }
   | Item_Reasoning
-      { reasoning_id :: Text,
-        reasoning_encrypted_content :: Maybe Text,
-        reasoning_summary :: Maybe (Vector SummaryPart),
-        reasoning_content :: Maybe (Vector ReasoningText),
-        reasoning_status :: Maybe Text
+      { reasoning_id :: Text
+      , reasoning_encrypted_content :: Maybe Text
+      , reasoning_summary :: Maybe (Vector SummaryPart)
+      , reasoning_content :: Maybe (Vector ReasoningText)
+      , reasoning_status :: Maybe Text
       }
   deriving stock (Generic, Show)
 
 outputItemOptions :: Options
 outputItemOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True,
-      fieldLabelModifier = \s -> case s of
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
+    , fieldLabelModifier = \s -> case s of
         "message_id" -> "id"
         "message_role" -> "role"
         "message_content" -> "content"
@@ -311,8 +311,8 @@ outputItemOptions =
         "reasoning_summary" -> "summary"
         "reasoning_content" -> "content"
         "reasoning_status" -> "status"
-        other -> other,
-      constructorTagModifier = \s -> case s of
+        other -> other
+    , constructorTagModifier = \s -> case s of
         "Item_OutputMessage" -> "message"
         "Item_FunctionToolCall" -> "function_call"
         "Item_WebSearchToolCall" -> "web_search_call"
@@ -331,29 +331,29 @@ instance ToJSON OutputItem where
 
 -- | Function tool call output item
 data FunctionToolCall = FunctionToolCall
-  { id :: Maybe Text,
-    call_id :: Text,
-    name :: Text,
-    arguments :: Text,
-    status :: Maybe Text
+  { id :: Maybe Text
+  , call_id :: Text
+  , name :: Text
+  , arguments :: Text
+  , status :: Maybe Text
   }
   deriving stock (Generic, Show)
 
 -- | Function tool call output item
 data FunctionToolCallOutput = FunctionToolCallOutput
-  { id :: Maybe Text,
-    call_id :: Text,
-    output :: Text,
-    status :: Maybe Text
+  { id :: Maybe Text
+  , call_id :: Text
+  , output :: Text
+  , status :: Maybe Text
   }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
 
 -- | Web search tool call output item (action is left generic for now)
 data WebSearchToolCall = WebSearchToolCall
-  { id :: Text,
-    status :: Text,
-    action :: Maybe WebSearchAction
+  { id :: Text
+  , status :: Text
+  , action :: Maybe WebSearchAction
   }
   deriving stock (Generic, Show)
 
@@ -365,20 +365,20 @@ instance ToJSON WebSearchToolCall where
 
 -- | File search result entry
 data FileSearchResult = FileSearchResult
-  { file_id :: Text,
-    text :: Text,
-    filename :: Text,
-    score :: Maybe Double
+  { file_id :: Text
+  , text :: Text
+  , filename :: Text
+  , score :: Maybe Double
   }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
 
 -- | File search tool call output item
 data FileSearchToolCall = FileSearchToolCall
-  { id :: Text,
-    status :: Text,
-    queries :: Vector Text,
-    results :: Maybe (Vector FileSearchResult)
+  { id :: Text
+  , status :: Text
+  , queries :: Vector Text
+  , results :: Maybe (Vector FileSearchResult)
   }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
@@ -392,9 +392,9 @@ data CodeInterpreterOutput
 codeInterpreterOutputOptions :: Options
 codeInterpreterOutputOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True,
-      constructorTagModifier = stripPrefix "CodeInterpreterOutput_"
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
+    , constructorTagModifier = stripPrefix "CodeInterpreterOutput_"
     }
 
 instance FromJSON CodeInterpreterOutput where
@@ -405,11 +405,11 @@ instance ToJSON CodeInterpreterOutput where
 
 -- | Code interpreter tool call output item
 data CodeInterpreterToolCall = CodeInterpreterToolCall
-  { id :: Text,
-    status :: Text,
-    container_id :: Maybe Text,
-    code :: Maybe Text,
-    outputs :: Maybe (Vector CodeInterpreterOutput)
+  { id :: Text
+  , status :: Text
+  , container_id :: Maybe Text
+  , code :: Maybe Text
+  , outputs :: Maybe (Vector CodeInterpreterOutput)
   }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
@@ -421,9 +421,9 @@ data WebSearchSource = WebSearchSource_URL {url :: Text}
 webSearchSourceOptions :: Options
 webSearchSourceOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True,
-      constructorTagModifier = stripPrefix "WebSearchSource_"
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
+    , constructorTagModifier = stripPrefix "WebSearchSource_"
     }
 
 instance FromJSON WebSearchSource where
@@ -435,23 +435,23 @@ instance ToJSON WebSearchSource where
 -- | Web search action
 data WebSearchAction
   = WebSearchAction_Search
-      { query :: Maybe Text,
-        sources :: Maybe (Vector WebSearchSource)
+      { query :: Maybe Text
+      , sources :: Maybe (Vector WebSearchSource)
       }
   | WebSearchAction_Open_Page
       {url :: Maybe Text}
   | WebSearchAction_Find
-      { url :: Maybe Text,
-        pattern :: Maybe Text
+      { url :: Maybe Text
+      , pattern :: Maybe Text
       }
   deriving stock (Generic, Show)
 
 webSearchActionOptions :: Options
 webSearchActionOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True,
-      constructorTagModifier = stripPrefix "WebSearchAction_"
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
+    , constructorTagModifier = stripPrefix "WebSearchAction_"
     }
 
 instance FromJSON WebSearchAction where
@@ -463,35 +463,35 @@ instance ToJSON WebSearchAction where
 -- | Output text annotation
 data Annotation
   = Annotation_File_Citation
-      { file_id :: Text,
-        index :: Natural,
-        filename :: Text
+      { file_id :: Text
+      , index :: Natural
+      , filename :: Text
       }
   | Annotation_Url_Citation
-      { url :: Text,
-        start_index :: Natural,
-        end_index :: Natural,
-        title :: Text
+      { url :: Text
+      , start_index :: Natural
+      , end_index :: Natural
+      , title :: Text
       }
   | Annotation_Container_File_Citation
-      { container_id :: Text,
-        file_id :: Text,
-        start_index :: Natural,
-        end_index :: Natural,
-        filename :: Text
+      { container_id :: Text
+      , file_id :: Text
+      , start_index :: Natural
+      , end_index :: Natural
+      , filename :: Text
       }
   | Annotation_File_Path
-      { file_id :: Text,
-        index :: Natural
+      { file_id :: Text
+      , index :: Natural
       }
   deriving stock (Generic, Show)
 
 annotationOptions :: Options
 annotationOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True,
-      constructorTagModifier = stripPrefix "Annotation_"
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
+    , constructorTagModifier = stripPrefix "Annotation_"
     }
 
 instance FromJSON Annotation where
@@ -507,8 +507,8 @@ data SummaryPart = Summary_Text {text :: Text}
 summaryPartOptions :: Options
 summaryPartOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
     }
 
 instance FromJSON SummaryPart where
@@ -524,8 +524,8 @@ data ReasoningText = Reasoning_Text {text :: Text}
 reasoningTextOptions :: Options
 reasoningTextOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
     }
 
 instance FromJSON ReasoningText where
@@ -536,11 +536,11 @@ instance ToJSON ReasoningText where
 
 -- | Reasoning item produced by reasoning models
 data ReasoningItem = ReasoningItem
-  { id :: Text,
-    encrypted_content :: Maybe Text,
-    summary :: Maybe (Vector SummaryPart),
-    content :: Maybe (Vector ReasoningText),
-    status :: Maybe Text
+  { id :: Text
+  , encrypted_content :: Maybe Text
+  , summary :: Maybe (Vector SummaryPart)
+  , content :: Maybe (Vector ReasoningText)
+  , status :: Maybe Text
   }
   deriving stock (Generic, Show)
 
@@ -553,145 +553,145 @@ instance ToJSON ReasoningItem where
 -- | Streaming events for /v1/responses
 data ResponseStreamEvent
   = ResponseCreatedEvent
-      { response :: ResponseObject,
-        sequence_number :: Natural
+      { response :: ResponseObject
+      , sequence_number :: Natural
       }
   | ResponseInProgressEvent
-      { response :: ResponseObject,
-        sequence_number :: Natural
+      { response :: ResponseObject
+      , sequence_number :: Natural
       }
   | ResponseCompletedEvent
-      { response :: ResponseObject,
-        sequence_number :: Natural
+      { response :: ResponseObject
+      , sequence_number :: Natural
       }
   | ResponseFailedEvent
-      { response :: ResponseObject,
-        sequence_number :: Natural
+      { response :: ResponseObject
+      , sequence_number :: Natural
       }
   | ResponseOutputItemAddedEvent
-      { output_index :: Natural,
-        item :: OutputItem,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item :: OutputItem
+      , sequence_number :: Natural
       }
   | ResponseOutputItemDoneEvent
-      { output_index :: Natural,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , sequence_number :: Natural
       }
   | ResponseContentPartAddedEvent
-      { item_id :: Text,
-        output_index :: Natural,
-        content_index :: Natural,
-        part :: OutputContent,
-        sequence_number :: Natural
+      { item_id :: Text
+      , output_index :: Natural
+      , content_index :: Natural
+      , part :: OutputContent
+      , sequence_number :: Natural
       }
   | ResponseContentPartDoneEvent
-      { item_id :: Text,
-        output_index :: Natural,
-        content_index :: Natural,
-        part :: OutputContent,
-        sequence_number :: Natural
+      { item_id :: Text
+      , output_index :: Natural
+      , content_index :: Natural
+      , part :: OutputContent
+      , sequence_number :: Natural
       }
   | ResponseTextDeltaEvent
-      { item_id :: Text,
-        output_index :: Natural,
-        content_index :: Natural,
-        delta :: Text,
-        sequence_number :: Natural
+      { item_id :: Text
+      , output_index :: Natural
+      , content_index :: Natural
+      , delta :: Text
+      , sequence_number :: Natural
       }
   | ResponseTextDoneEvent
-      { item_id :: Text,
-        output_index :: Natural,
-        content_index :: Natural,
-        text :: Text,
-        sequence_number :: Natural
+      { item_id :: Text
+      , output_index :: Natural
+      , content_index :: Natural
+      , text :: Text
+      , sequence_number :: Natural
       }
   | ResponseOutputTextAnnotationAddedEvent
-      { item_id :: Text,
-        output_index :: Natural,
-        content_index :: Natural,
-        annotation_index :: Natural,
-        annotation :: Annotation,
-        sequence_number :: Natural
+      { item_id :: Text
+      , output_index :: Natural
+      , content_index :: Natural
+      , annotation_index :: Natural
+      , annotation :: Annotation
+      , sequence_number :: Natural
       }
   | ResponseWebSearchCallInProgressEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , sequence_number :: Natural
       }
   | ResponseWebSearchCallSearchingEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , sequence_number :: Natural
       }
   | ResponseWebSearchCallCompletedEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , sequence_number :: Natural
       }
   | ResponseFileSearchCallInProgressEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , sequence_number :: Natural
       }
   | ResponseFileSearchCallSearchingEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , sequence_number :: Natural
       }
   | ResponseFileSearchCallCompletedEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , sequence_number :: Natural
       }
   | ResponseCodeInterpreterCallInProgressEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , sequence_number :: Natural
       }
   | ResponseCodeInterpreterCallInterpretingEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , sequence_number :: Natural
       }
   | ResponseCodeInterpreterCallCompletedEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , sequence_number :: Natural
       }
   | ResponseCodeInterpreterCallCodeDeltaEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        delta :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , delta :: Text
+      , sequence_number :: Natural
       }
   | ResponseCodeInterpreterCallCodeDoneEvent
-      { output_index :: Natural,
-        item_id :: Text,
-        code :: Text,
-        sequence_number :: Natural
+      { output_index :: Natural
+      , item_id :: Text
+      , code :: Text
+      , sequence_number :: Natural
       }
   | ErrorEvent
-      { error_code :: Maybe Text,
-        error_message :: Text,
-        error_param :: Maybe Text,
-        error_sequence_number :: Natural
+      { error_code :: Maybe Text
+      , error_message :: Text
+      , error_param :: Maybe Text
+      , error_sequence_number :: Natural
       }
   deriving stock (Generic, Show)
 
 responseStreamEventOptions :: Options
 responseStreamEventOptions =
   aesonOptions
-    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True,
-      fieldLabelModifier = \s -> case s of
+    { sumEncoding = TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
+    , fieldLabelModifier = \s -> case s of
         -- Strip "error_" prefix from ErrorEvent fields
         "error_code" -> "code"
         "error_message" -> "message"
         "error_param" -> "param"
         "error_sequence_number" -> "sequence_number"
         -- Keep all other fields as-is
-        other -> other,
-      constructorTagModifier = \s -> case s of
+        other -> other
+    , constructorTagModifier = \s -> case s of
         "ResponseCreatedEvent" -> "response.created"
         "ResponseInProgressEvent" -> "response.in_progress"
         "ResponseCompletedEvent" -> "response.completed"
@@ -726,11 +726,11 @@ instance ToJSON ResponseStreamEvent where
 
 -- | Usage statistics for the response request
 data ResponseUsage = ResponseUsage
-  { input_tokens :: Natural,
-    input_tokens_details :: InputTokensDetails,
-    output_tokens :: Natural,
-    output_tokens_details :: OutputTokensDetails,
-    total_tokens :: Natural
+  { input_tokens :: Natural
+  , input_tokens_details :: InputTokensDetails
+  , output_tokens :: Natural
+  , output_tokens_details :: OutputTokensDetails
+  , total_tokens :: Natural
   }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
@@ -749,27 +749,27 @@ data OutputTokensDetails = OutputTokensDetails
 
 -- | Response object
 data ResponseObject = ResponseObject
-  { id :: Text,
-    object :: Text,
-    created_at :: POSIXTime,
-    status :: Text,
-    error :: Maybe Value,
-    incomplete_details :: Maybe Value,
-    instructions :: Maybe Value,
-    model :: Model,
-    output :: Vector OutputItem,
-    parallel_tool_calls :: Bool,
-    previous_response_id :: Maybe Text,
-    reasoning :: Maybe Value,
-    store :: Maybe Bool,
-    temperature :: Maybe Double,
-    tool_choice :: Maybe ToolChoice,
-    tools :: Maybe (Vector Tool),
-    top_p :: Maybe Double,
-    truncation :: Maybe Text,
-    usage :: Maybe ResponseUsage,
-    user :: Maybe Text,
-    metadata :: Maybe (Map Text Text)
+  { id :: Text
+  , object :: Text
+  , created_at :: POSIXTime
+  , status :: Text
+  , error :: Maybe Value
+  , incomplete_details :: Maybe Value
+  , instructions :: Maybe Value
+  , model :: Model
+  , output :: Vector OutputItem
+  , parallel_tool_calls :: Bool
+  , previous_response_id :: Maybe Text
+  , reasoning :: Maybe Value
+  , store :: Maybe Bool
+  , temperature :: Maybe Double
+  , tool_choice :: Maybe ToolChoice
+  , tools :: Maybe (Vector Tool)
+  , top_p :: Maybe Double
+  , truncation :: Maybe Text
+  , usage :: Maybe ResponseUsage
+  , user :: Maybe Text
+  , metadata :: Maybe (Map Text Text)
   }
   deriving stock (Generic, Show)
 
@@ -788,19 +788,19 @@ instance ToJSON ResponseObject where
 
 -- | Request body for /v1/responses
 data CreateResponse = CreateResponse
-  { model :: Model,
-    input :: Maybe Input,
-    include :: Maybe (Vector Text),
-    parallel_tool_calls :: Maybe Bool,
-    store :: Maybe Bool,
-    instructions :: Maybe Text,
-    stream :: Maybe Bool,
-    stream_options :: Maybe Value,
-    metadata :: Maybe (Map Text Text),
-    temperature :: Maybe Double,
-    top_p :: Maybe Double,
-    tools :: Maybe (Vector Tool),
-    tool_choice :: Maybe ToolChoice
+  { model :: Model
+  , input :: Maybe Input
+  , include :: Maybe (Vector Text)
+  , parallel_tool_calls :: Maybe Bool
+  , store :: Maybe Bool
+  , instructions :: Maybe Text
+  , stream :: Maybe Bool
+  , stream_options :: Maybe Value
+  , metadata :: Maybe (Map Text Text)
+  , temperature :: Maybe Double
+  , top_p :: Maybe Double
+  , tools :: Maybe (Vector Tool)
+  , tool_choice :: Maybe ToolChoice
   }
   deriving stock (Generic, Show)
 
@@ -821,31 +821,31 @@ instance ToJSON CreateResponse where
 _CreateResponse :: CreateResponse
 _CreateResponse =
   CreateResponse
-    { input = Nothing,
-      include = Nothing,
-      parallel_tool_calls = Nothing,
-      store = Nothing,
-      instructions = Nothing,
-      stream = Nothing,
-      stream_options = Nothing,
-      metadata = Nothing,
-      temperature = Nothing,
-      top_p = Nothing,
-      tools = Nothing,
-      tool_choice = Nothing
+    { input = Nothing
+    , include = Nothing
+    , parallel_tool_calls = Nothing
+    , store = Nothing
+    , instructions = Nothing
+    , stream = Nothing
+    , stream_options = Nothing
+    , metadata = Nothing
+    , temperature = Nothing
+    , top_p = Nothing
+    , tools = Nothing
+    , tool_choice = Nothing
     }
 
 -- | Servant API for /v1/responses
 type API =
   "responses"
     :> ( ReqBody '[JSON] CreateResponse
-           :> Post '[JSON] ResponseObject
-           :<|> Capture "response_id" Text
-           :> Get '[JSON] ResponseObject
-           :<|> Capture "response_id" Text
-           :> "cancel"
-           :> Post '[JSON] ResponseObject
-           :<|> Capture "response_id" Text
-           :> "input_items"
-           :> Get '[JSON] (ListOf InputItem)
+          :> Post '[JSON] ResponseObject
+          :<|> Capture "response_id" Text
+          :> Get '[JSON] ResponseObject
+          :<|> Capture "response_id" Text
+          :> "cancel"
+          :> Post '[JSON] ResponseObject
+          :<|> Capture "response_id" Text
+          :> "input_items"
+          :> Get '[JSON] (ListOf InputItem)
        )

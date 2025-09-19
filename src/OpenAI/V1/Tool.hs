@@ -32,26 +32,26 @@ import OpenAI.Prelude
 
 -- | The ranking options for the file search
 data RankingOptions = RankingOptions
-  { ranker :: Maybe Text,
-    score_threshold :: Double
+  { ranker :: Maybe Text
+  , score_threshold :: Double
   }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
 
 -- | Overrides for the file search tool
 data FileSearch = FileSearch
-  { max_num_results :: Maybe Natural,
-    ranking_options :: Maybe RankingOptions
+  { max_num_results :: Maybe Natural
+  , ranking_options :: Maybe RankingOptions
   }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
 
 -- | The Function tool
 data Function = Function
-  { description :: Maybe Text,
-    name :: Text,
-    parameters :: Maybe Value,
-    strict :: Maybe Bool
+  { description :: Maybe Text
+  , name :: Text
+  , parameters :: Maybe Value
+  , strict :: Maybe Bool
   }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
@@ -68,9 +68,9 @@ toolOptions :: Options
 toolOptions =
   aesonOptions
     { sumEncoding =
-        TaggedObject {tagFieldName = "type", contentsFieldName = ""},
-      tagSingleConstructors = True,
-      constructorTagModifier = stripPrefix "Tool_"
+        TaggedObject {tagFieldName = "type", contentsFieldName = ""}
+    , tagSingleConstructors = True
+    , constructorTagModifier = stripPrefix "Tool_"
     }
 
 instance FromJSON Tool where

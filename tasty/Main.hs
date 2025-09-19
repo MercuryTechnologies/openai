@@ -11,12 +11,12 @@ module Main where
 
 import qualified Control.Concurrent as Concurrent
 import Control.Exception (SomeException, catch)
+import qualified Data.IORef as IORef
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
 import OpenAI.V1 (Methods (..))
 import qualified OpenAI.V1 as V1
-import qualified OpenAI.V1.Responses as Responses
 import OpenAI.V1.Assistants
   ( AssistantObject (..),
     CreateAssistant (..),
@@ -55,6 +55,7 @@ import qualified OpenAI.V1.Images.ResponseFormat as ResponseFormat
 import OpenAI.V1.Images.Variations (CreateImageVariation (..))
 import OpenAI.V1.Message (Message (..))
 import OpenAI.V1.Moderations (CreateModeration (..))
+import qualified OpenAI.V1.Responses as Responses
 import OpenAI.V1.Threads
   ( ModifyThread (..),
     Thread (..),
@@ -70,9 +71,9 @@ import OpenAI.V1.Threads.Runs
     Status (..),
   )
 import OpenAI.V1.Tool
-    ( Tool (..)
-    , ToolChoice (..)
-    )
+  ( Tool (..),
+    ToolChoice (..),
+  )
 import qualified OpenAI.V1.Tool as Tool
 import OpenAI.V1.ToolCall (ToolCall (..))
 import qualified OpenAI.V1.ToolCall as ToolCall
@@ -101,7 +102,6 @@ import qualified System.Environment as Environment
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as HUnit
 import Prelude hiding (id)
-import qualified Data.IORef as IORef
 
 main :: IO ()
 main = do
@@ -132,11 +132,11 @@ main = do
           _ <-
             createSpeech
               _CreateSpeech
-                { model = ttsModel,
-                  input = "Hello, world!",
-                  voice = Nova,
-                  response_format = Just format,
-                  speed = Just 1.0
+                { model = ttsModel
+                , input = "Hello, world!"
+                , voice = Nova
+                , response_format = Just format
+                , speed = Just 1.0
                 }
 
           return ()
@@ -146,9 +146,9 @@ main = do
           _ <-
             createSpeech
               _CreateSpeech
-                { model = ttsModel,
-                  input = "Hello, world!",
-                  voice = Alloy
+                { model = ttsModel
+                , input = "Hello, world!"
+                , voice = Alloy
                 }
 
           return ()
@@ -163,11 +163,11 @@ main = do
           _ <-
             createTranscription
               CreateTranscription
-                { file = "tasty/data/v1/audio/preamble.wav",
-                  model = "whisper-1",
-                  language = Just "en",
-                  prompt = Nothing,
-                  temperature = Just 0
+                { file = "tasty/data/v1/audio/preamble.wav"
+                , model = "whisper-1"
+                , language = Just "en"
+                , prompt = Nothing
+                , temperature = Just 0
                 }
 
           return ()
@@ -177,10 +177,10 @@ main = do
           _ <-
             createTranslation
               CreateTranslation
-                { file = "tasty/data/v1/audio/preamble.wav",
-                  model = "whisper-1",
-                  prompt = Nothing,
-                  temperature = Just 0
+                { file = "tasty/data/v1/audio/preamble.wav"
+                , model = "whisper-1"
+                , prompt = Nothing
+                , temperature = Just 0
                 }
 
           return ()
@@ -192,35 +192,35 @@ main = do
               CreateChatCompletion
                 { messages =
                     [ Completions.User
-                        { content = ["Hello, world!"],
-                          name = Nothing
+                        { content = ["Hello, world!"]
+                        , name = Nothing
                         }
-                    ],
-                  model = chatModel,
-                  store = Nothing,
-                  metadata = Nothing,
-                  frequency_penalty = Nothing,
-                  logit_bias = Nothing,
-                  logprobs = Nothing,
-                  top_logprobs = Nothing,
-                  max_completion_tokens = Nothing,
-                  n = Nothing,
-                  modalities = Nothing,
-                  prediction = Nothing,
-                  audio = Nothing,
-                  presence_penalty = Nothing,
-                  reasoning_effort = Nothing,
-                  response_format = Nothing,
-                  seed = Nothing,
-                  service_tier = Nothing,
-                  stop = Nothing,
-                  temperature = Nothing,
-                  top_p = Nothing,
-                  tools = Nothing,
-                  tool_choice = Nothing,
-                  parallel_tool_calls = Nothing,
-                  user = Nothing,
-                  web_search_options = Nothing
+                    ]
+                , model = chatModel
+                , store = Nothing
+                , metadata = Nothing
+                , frequency_penalty = Nothing
+                , logit_bias = Nothing
+                , logprobs = Nothing
+                , top_logprobs = Nothing
+                , max_completion_tokens = Nothing
+                , n = Nothing
+                , modalities = Nothing
+                , prediction = Nothing
+                , audio = Nothing
+                , presence_penalty = Nothing
+                , reasoning_effort = Nothing
+                , response_format = Nothing
+                , seed = Nothing
+                , service_tier = Nothing
+                , stop = Nothing
+                , temperature = Nothing
+                , top_p = Nothing
+                , tools = Nothing
+                , tool_choice = Nothing
+                , parallel_tool_calls = Nothing
+                , user = Nothing
+                , web_search_options = Nothing
                 }
 
           return ()
@@ -232,35 +232,35 @@ main = do
               CreateChatCompletion
                 { messages =
                     [ Completions.User
-                        { content = ["Hello, world!"],
-                          name = Nothing
+                        { content = ["Hello, world!"]
+                        , name = Nothing
                         }
-                    ],
-                  model = reasoningModel,
-                  store = Nothing,
-                  metadata = Nothing,
-                  frequency_penalty = Nothing,
-                  logit_bias = Nothing,
-                  logprobs = Nothing,
-                  top_logprobs = Nothing,
-                  max_completion_tokens = Nothing,
-                  n = Nothing,
-                  modalities = Nothing,
-                  prediction = Nothing,
-                  audio = Nothing,
-                  presence_penalty = Nothing,
-                  reasoning_effort = Just Completions.ReasoningEffort_Low,
-                  response_format = Nothing,
-                  seed = Nothing,
-                  service_tier = Nothing,
-                  stop = Nothing,
-                  temperature = Nothing,
-                  top_p = Nothing,
-                  tools = Nothing,
-                  tool_choice = Nothing,
-                  parallel_tool_calls = Nothing,
-                  user = Nothing,
-                  web_search_options = Nothing
+                    ]
+                , model = reasoningModel
+                , store = Nothing
+                , metadata = Nothing
+                , frequency_penalty = Nothing
+                , logit_bias = Nothing
+                , logprobs = Nothing
+                , top_logprobs = Nothing
+                , max_completion_tokens = Nothing
+                , n = Nothing
+                , modalities = Nothing
+                , prediction = Nothing
+                , audio = Nothing
+                , presence_penalty = Nothing
+                , reasoning_effort = Just Completions.ReasoningEffort_Low
+                , response_format = Nothing
+                , seed = Nothing
+                , service_tier = Nothing
+                , stop = Nothing
+                , temperature = Nothing
+                , top_p = Nothing
+                , tools = Nothing
+                , tool_choice = Nothing
+                , parallel_tool_calls = Nothing
+                , user = Nothing
+                , web_search_options = Nothing
                 }
 
           return ()
@@ -272,68 +272,68 @@ main = do
               CreateChatCompletion
                 { messages =
                     [ Completions.User
-                        { content = ["Hello, world!"],
-                          name = Just "gabby"
-                        },
-                      Completions.Assistant
-                        { assistant_content = Nothing,
-                          refusal = Nothing,
-                          name = Just "Ada",
-                          assistant_audio = Nothing,
-                          tool_calls =
+                        { content = ["Hello, world!"]
+                        , name = Just "gabby"
+                        }
+                    , Completions.Assistant
+                        { assistant_content = Nothing
+                        , refusal = Nothing
+                        , name = Just "Ada"
+                        , assistant_audio = Nothing
+                        , tool_calls =
                             Just
                               [ ToolCall_Function
-                                  { id = "call_bzE95mjMMFqeanfY2sL6Sdir",
-                                    function =
+                                  { id = "call_bzE95mjMMFqeanfY2sL6Sdir"
+                                  , function =
                                       ToolCall.Function
-                                        { name = "hello",
-                                          arguments = "{}"
+                                        { name = "hello"
+                                        , arguments = "{}"
                                         }
                                   }
                               ]
-                        },
-                      Completions.Tool
-                        { content = ["Hello, world!"],
-                          tool_call_id = "call_bzE95mjMMFqeanfY2sL6Sdir"
                         }
-                    ],
-                  model = chatModel,
-                  store = Just False,
-                  metadata = Nothing,
-                  frequency_penalty = Just 0,
-                  logit_bias = Just mempty,
-                  logprobs = Just True,
-                  top_logprobs = Just 1,
-                  max_completion_tokens = Just 1024,
-                  n = Just 1,
-                  modalities = Just [Modality_Text],
-                  prediction = Nothing,
-                  audio = Nothing,
-                  presence_penalty = Just 0,
-                  reasoning_effort = Nothing,
-                  response_format = Just Completions.ResponseFormat_Text,
-                  seed = Just 0,
-                  service_tier = Just Auto,
-                  stop = Just [">>>"],
-                  temperature = Just 1,
-                  top_p = Just 1,
-                  tools =
+                    , Completions.Tool
+                        { content = ["Hello, world!"]
+                        , tool_call_id = "call_bzE95mjMMFqeanfY2sL6Sdir"
+                        }
+                    ]
+                , model = chatModel
+                , store = Just False
+                , metadata = Nothing
+                , frequency_penalty = Just 0
+                , logit_bias = Just mempty
+                , logprobs = Just True
+                , top_logprobs = Just 1
+                , max_completion_tokens = Just 1024
+                , n = Just 1
+                , modalities = Just [Modality_Text]
+                , prediction = Nothing
+                , audio = Nothing
+                , presence_penalty = Just 0
+                , reasoning_effort = Nothing
+                , response_format = Just Completions.ResponseFormat_Text
+                , seed = Just 0
+                , service_tier = Just Auto
+                , stop = Just [">>>"]
+                , temperature = Just 1
+                , top_p = Just 1
+                , tools =
                     Just
                       [ Tool_Function
                           { function =
                               Tool.Function
                                 { description =
-                                    Just "Use the hello command line tool",
-                                  name = "hello",
-                                  parameters = Nothing,
-                                  strict = Just False
+                                    Just "Use the hello command line tool"
+                                , name = "hello"
+                                , parameters = Nothing
+                                , strict = Just False
                                 }
                           }
-                      ],
-                  tool_choice = Just ToolChoiceAuto,
-                  parallel_tool_calls = Just True,
-                  user = Just user,
-                  web_search_options = Nothing
+                      ]
+                , tool_choice = Just ToolChoiceAuto
+                , parallel_tool_calls = Just True
+                , user = Just user
+                , web_search_options = Nothing
                 }
 
           return ()
@@ -343,11 +343,11 @@ main = do
           _ <-
             createEmbeddings
               CreateEmbeddings
-                { input = "Hello, world!",
-                  model = "text-embedding-3-small",
-                  encoding_format = Just Float,
-                  dimensions = Just 1024,
-                  user = Just user
+                { input = "Hello, world!"
+                , model = "text-embedding-3-small"
+                , encoding_format = Just Float
+                , dimensions = Just 1024
+                , user = Just user
                 }
 
           return ()
@@ -358,16 +358,16 @@ main = do
             uploadFile
               UploadFile
                 { file =
-                    "tasty/data/v1/fine_tuning/jobs/training_data.jsonl",
-                  purpose = Files.Fine_Tune
+                    "tasty/data/v1/fine_tuning/jobs/training_data.jsonl"
+                , purpose = Files.Fine_Tune
                 }
 
           FileObject {id = validationId} <-
             uploadFile
               UploadFile
                 { file =
-                    "tasty/data/v1/fine_tuning/jobs/validation_data.jsonl",
-                  purpose = Files.Fine_Tune
+                    "tasty/data/v1/fine_tuning/jobs/validation_data.jsonl"
+                , purpose = Files.Fine_Tune
                 }
 
           _ <- retrieveFile trainingId
@@ -379,19 +379,19 @@ main = do
           JobObject {id} <-
             createFineTuningJob
               CreateFineTuningJob
-                { model = "gpt-4o-mini-2024-07-18",
-                  training_file = trainingId,
-                  hyperparameters =
+                { model = "gpt-4o-mini-2024-07-18"
+                , training_file = trainingId
+                , hyperparameters =
                     Just
                       Hyperparameters
-                        { batch_size = Just Jobs.Auto,
-                          learning_rate_multiplier = Just Jobs.Auto,
-                          n_epochs = Just Jobs.Auto
-                        },
-                  suffix = Just "haskell-openai",
-                  validation_file = Just validationId,
-                  integrations = Just [],
-                  seed = Just 0
+                        { batch_size = Just Jobs.Auto
+                        , learning_rate_multiplier = Just Jobs.Auto
+                        , n_epochs = Just Jobs.Auto
+                        }
+                , suffix = Just "haskell-openai"
+                , validation_file = Just validationId
+                , integrations = Just []
+                , seed = Just 0
                 }
 
           _ <- retrieveFineTuningJob id
@@ -414,17 +414,17 @@ main = do
           FileObject {id = requestsId} <-
             uploadFile
               UploadFile
-                { file = "tasty/data/v1/batches/requests.jsonl",
-                  purpose = Files.Batch
+                { file = "tasty/data/v1/batches/requests.jsonl"
+                , purpose = Files.Batch
                 }
 
           BatchObject {id} <-
             createBatch
               CreateBatch
-                { input_file_id = requestsId,
-                  endpoint = "/v1/chat/completions",
-                  completion_window = "24h",
-                  metadata = Nothing
+                { input_file_id = requestsId
+                , endpoint = "/v1/chat/completions"
+                , completion_window = "24h"
+                , metadata = Nothing
                 }
 
           _ <- retrieveBatch id
@@ -440,10 +440,10 @@ main = do
           UploadObject {id = cancelledId} <-
             createUpload
               CreateUpload
-                { filename = "training_data.jsonl",
-                  purpose = Files.Fine_Tune,
-                  bytes = 4077,
-                  mime_type = "text/jsonl"
+                { filename = "training_data.jsonl"
+                , purpose = Files.Fine_Tune
+                , bytes = 4077
+                , mime_type = "text/jsonl"
                 }
 
           _ <- cancelUpload cancelledId
@@ -451,10 +451,10 @@ main = do
           UploadObject {id} <-
             createUpload
               CreateUpload
-                { filename = "training_data.jsonl",
-                  purpose = Files.Fine_Tune,
-                  bytes = 4077,
-                  mime_type = "text/jsonl"
+                { filename = "training_data.jsonl"
+                , purpose = Files.Fine_Tune
+                , bytes = 4077
+                , mime_type = "text/jsonl"
                 }
 
           PartObject {id = partId0} <-
@@ -475,8 +475,8 @@ main = do
             completeUpload
               id
               CompleteUpload
-                { part_ids = [partId0, partId1],
-                  md5 = Nothing
+                { part_ids = [partId0, partId1]
+                , md5 = Nothing
                 }
 
           return ()
@@ -486,14 +486,14 @@ main = do
           _ <-
             createImage
               CreateImage
-                { prompt = "A baby panda",
-                  model = Nothing,
-                  n = Nothing,
-                  quality = Nothing,
-                  response_format = Nothing,
-                  size = Nothing,
-                  style = Nothing,
-                  user = Nothing
+                { prompt = "A baby panda"
+                , model = Nothing
+                , n = Nothing
+                , quality = Nothing
+                , response_format = Nothing
+                , size = Nothing
+                , style = Nothing
+                , user = Nothing
                 }
 
           return ()
@@ -503,14 +503,14 @@ main = do
           _ <-
             createImage
               CreateImage
-                { prompt = "A baby panda",
-                  model = Just "dall-e-3",
-                  n = Just 1,
-                  quality = Just Standard,
-                  response_format = Just ResponseFormat.URL,
-                  size = Just "1024x1024",
-                  style = Just Vivid,
-                  user = Just user
+                { prompt = "A baby panda"
+                , model = Just "dall-e-3"
+                , n = Just 1
+                , quality = Just Standard
+                , response_format = Just ResponseFormat.URL
+                , size = Just "1024x1024"
+                , style = Just Vivid
+                , user = Just user
                 }
 
           return ()
@@ -520,14 +520,14 @@ main = do
           _ <-
             createImageEdit
               CreateImageEdit
-                { image = "tasty/data/v1/images/image.png",
-                  prompt = "The panda should be greener",
-                  mask = Nothing,
-                  model = Nothing,
-                  n = Nothing,
-                  size = Nothing,
-                  response_format = Nothing,
-                  user = Nothing
+                { image = "tasty/data/v1/images/image.png"
+                , prompt = "The panda should be greener"
+                , mask = Nothing
+                , model = Nothing
+                , n = Nothing
+                , size = Nothing
+                , response_format = Nothing
+                , user = Nothing
                 }
 
           return ()
@@ -537,14 +537,14 @@ main = do
           _ <-
             createImageEdit
               CreateImageEdit
-                { image = "tasty/data/v1/images/image.png",
-                  prompt = "The panda should be greener",
-                  mask = Nothing,
-                  model = Just "dall-e-2",
-                  n = Just 1,
-                  size = Just "1024x1024",
-                  response_format = Just ResponseFormat.URL,
-                  user = Just user
+                { image = "tasty/data/v1/images/image.png"
+                , prompt = "The panda should be greener"
+                , mask = Nothing
+                , model = Just "dall-e-2"
+                , n = Just 1
+                , size = Just "1024x1024"
+                , response_format = Just ResponseFormat.URL
+                , user = Just user
                 }
 
           return ()
@@ -554,12 +554,12 @@ main = do
           _ <-
             createImageVariation
               CreateImageVariation
-                { image = "tasty/data/v1/images/image.png",
-                  model = Nothing,
-                  n = Nothing,
-                  response_format = Nothing,
-                  size = Nothing,
-                  user = Nothing
+                { image = "tasty/data/v1/images/image.png"
+                , model = Nothing
+                , n = Nothing
+                , response_format = Nothing
+                , size = Nothing
+                , user = Nothing
                 }
 
           return ()
@@ -569,12 +569,12 @@ main = do
           _ <-
             createImageVariation
               CreateImageVariation
-                { image = "tasty/data/v1/images/image.png",
-                  model = Just "dall-e-2",
-                  n = Just 1,
-                  response_format = Just ResponseFormat.URL,
-                  size = Just "1024x1024",
-                  user = Just user
+                { image = "tasty/data/v1/images/image.png"
+                , model = Just "dall-e-2"
+                , n = Just 1
+                , response_format = Just ResponseFormat.URL
+                , size = Just "1024x1024"
+                , user = Just user
                 }
 
           return ()
@@ -584,8 +584,8 @@ main = do
           _ <-
             createModeration
               CreateModeration
-                { input = "I am going to kill you",
-                  model = Nothing
+                { input = "I am going to kill you"
+                , model = Nothing
                 }
 
           return ()
@@ -595,16 +595,16 @@ main = do
           AssistantObject {id} <-
             createAssistant
               CreateAssistant
-                { model = chatModel,
-                  name = Nothing,
-                  description = Nothing,
-                  instructions = Nothing,
-                  tools = Nothing,
-                  tool_resources = Nothing,
-                  metadata = Nothing,
-                  temperature = Nothing,
-                  top_p = Nothing,
-                  response_format = Nothing
+                { model = chatModel
+                , name = Nothing
+                , description = Nothing
+                , instructions = Nothing
+                , tools = Nothing
+                , tool_resources = Nothing
+                , metadata = Nothing
+                , temperature = Nothing
+                , top_p = Nothing
+                , response_format = Nothing
                 }
 
           _ <- listAssistants Nothing Nothing Nothing Nothing
@@ -615,16 +615,16 @@ main = do
             modifyAssistant
               id
               ModifyAssistant
-                { model = chatModel,
-                  name = Nothing,
-                  description = Nothing,
-                  instructions = Nothing,
-                  tools = Nothing,
-                  tool_resources = Nothing,
-                  metadata = Nothing,
-                  temperature = Nothing,
-                  top_p = Nothing,
-                  response_format = Nothing
+                { model = chatModel
+                , name = Nothing
+                , description = Nothing
+                , instructions = Nothing
+                , tools = Nothing
+                , tool_resources = Nothing
+                , metadata = Nothing
+                , temperature = Nothing
+                , top_p = Nothing
+                , response_format = Nothing
                 }
 
           _ <- deleteAssistant id
@@ -637,16 +637,16 @@ main = do
           AssistantObject {id = aid} <-
             createAssistant
               CreateAssistant
-                { model = chatModel,
-                  name = Nothing,
-                  description = Nothing,
-                  instructions = Nothing,
-                  tools = Just [Tool.codeInterpreter],
-                  tool_resources = Nothing,
-                  metadata = Nothing,
-                  temperature = Nothing,
-                  top_p = Nothing,
-                  response_format = Nothing
+                { model = chatModel
+                , name = Nothing
+                , description = Nothing
+                , instructions = Nothing
+                , tools = Just [Tool.codeInterpreter]
+                , tool_resources = Nothing
+                , metadata = Nothing
+                , temperature = Nothing
+                , top_p = Nothing
+                , response_format = Nothing
                 }
 
           -- Fetch and then delete to ensure the round trip works
@@ -662,22 +662,22 @@ main = do
                 { messages =
                     Just
                       [ User
-                          { content = ["Hi, how can I help you!"],
-                            attachments = Nothing,
-                            metadata = Nothing
+                          { content = ["Hi, how can I help you!"]
+                          , attachments = Nothing
+                          , metadata = Nothing
                           }
-                      ],
-                  tool_resources = Nothing,
-                  metadata = Nothing
+                      ]
+                , tool_resources = Nothing
+                , metadata = Nothing
                 }
 
           MessageObject {id = messageId} <-
             createMessage
               threadId
               User
-                { content = ["What is the capital of France?"],
-                  attachments = Nothing,
-                  metadata = Nothing
+                { content = ["What is the capital of France?"]
+                , attachments = Nothing
+                , metadata = Nothing
                 }
 
           _ <- retrieveMessage threadId messageId
@@ -715,13 +715,13 @@ main = do
                 { messages =
                     Just
                       [ User
-                          { content = ["Hello, world!"],
-                            attachments = Nothing,
-                            metadata = Nothing
+                          { content = ["Hello, world!"]
+                          , attachments = Nothing
+                          , metadata = Nothing
                           }
-                      ],
-                  tool_resources = Nothing,
-                  metadata = Nothing
+                      ]
+                , tool_resources = Nothing
+                , metadata = Nothing
                 }
 
           _ <- retrieveThread threadId
@@ -730,23 +730,23 @@ main = do
             modifyThread
               threadId
               ModifyThread
-                { tool_resources = Nothing,
-                  metadata = Nothing
+                { tool_resources = Nothing
+                , metadata = Nothing
                 }
 
           AssistantObject {id = assistantId} <-
             createAssistant
               CreateAssistant
-                { model = chatModel,
-                  name = Nothing,
-                  description = Nothing,
-                  instructions = Nothing,
-                  tools = Nothing,
-                  tool_resources = Nothing,
-                  metadata = Nothing,
-                  temperature = Nothing,
-                  top_p = Nothing,
-                  response_format = Nothing
+                { model = chatModel
+                , name = Nothing
+                , description = Nothing
+                , instructions = Nothing
+                , tools = Nothing
+                , tool_resources = Nothing
+                , metadata = Nothing
+                , temperature = Nothing
+                , top_p = Nothing
+                , response_format = Nothing
                 }
 
           RunObject {id = runId} <-
@@ -754,21 +754,21 @@ main = do
               threadId
               Nothing
               CreateRun
-                { assistant_id = assistantId,
-                  model = Nothing,
-                  instructions = Nothing,
-                  additional_instructions = Nothing,
-                  additional_messages = Nothing,
-                  tools = Nothing,
-                  metadata = Nothing,
-                  temperature = Nothing,
-                  top_p = Nothing,
-                  max_prompt_tokens = Nothing,
-                  max_completion_tokens = Nothing,
-                  truncation_strategy = Nothing,
-                  tool_choice = Nothing,
-                  parallel_tool_calls = Nothing,
-                  response_format = Nothing
+                { assistant_id = assistantId
+                , model = Nothing
+                , instructions = Nothing
+                , additional_instructions = Nothing
+                , additional_messages = Nothing
+                , tools = Nothing
+                , metadata = Nothing
+                , temperature = Nothing
+                , top_p = Nothing
+                , max_prompt_tokens = Nothing
+                , max_completion_tokens = Nothing
+                , truncation_strategy = Nothing
+                , tool_choice = Nothing
+                , parallel_tool_calls = Nothing
+                , response_format = Nothing
                 }
 
           _ <- listRuns threadId Nothing Nothing Nothing Nothing
@@ -795,26 +795,26 @@ main = do
           FileObject {id = fileId} <-
             uploadFile
               UploadFile
-                { file = "tasty/data/v1/vector_stores/index.html",
-                  purpose = Files.Assistants
+                { file = "tasty/data/v1/vector_stores/index.html"
+                , purpose = Files.Assistants
                 }
 
           VectorStoreObject {id = vectorStoreId} <-
             createVectorStore
               CreateVectorStore
-                { file_ids = [],
-                  name = Nothing,
-                  expires_after = Nothing,
-                  chunking_strategy = Nothing,
-                  metadata = Nothing
+                { file_ids = []
+                , name = Nothing
+                , expires_after = Nothing
+                , chunking_strategy = Nothing
+                , metadata = Nothing
                 }
 
           VectorStoreFileObject {id = vectorStoreFileId} <-
             createVectorStoreFile
               vectorStoreId
               CreateVectorStoreFile
-                { file_id = fileId,
-                  chunking_strategy = Nothing
+                { file_id = fileId
+                , chunking_strategy = Nothing
                 }
 
           -- Try to create vector store file batch, but handle size limit error gracefully
@@ -823,8 +823,8 @@ main = do
                 <$> createVectorStoreFileBatch
                   vectorStoreId
                   CreateVectorStoreFileBatch
-                    { file_ids = [fileId],
-                      chunking_strategy = Nothing
+                    { file_ids = [fileId]
+                    , chunking_strategy = Nothing
                     }
               )
               `catch` \(e :: SomeException) -> return (Left e)
@@ -847,9 +847,9 @@ main = do
                 modifyVectorStore
                   vectorStoreId
                   ModifyVectorStore
-                    { name = Nothing,
-                      expires_after = Nothing,
-                      metadata = Nothing
+                    { name = Nothing
+                    , expires_after = Nothing
+                    , metadata = Nothing
                     }
 
               _ <- cancelVectorStoreFileBatch vectorStoreId batchId
@@ -875,9 +875,9 @@ main = do
                 modifyVectorStore
                   vectorStoreId
                   ModifyVectorStore
-                    { name = Nothing,
-                      expires_after = Nothing,
-                      metadata = Nothing
+                    { name = Nothing
+                    , expires_after = Nothing
+                    , metadata = Nothing
                     }
 
               _ <- deleteVectorStoreFile vectorStoreId vectorStoreFileId
@@ -893,25 +893,28 @@ main = do
           _ <-
             createResponse
               Responses._CreateResponse
-                { Responses.model = chatModel,
-                  Responses.input = Just (Responses.Input
-                    [ Responses.Item_Input_Message
-                        { Responses.role = Responses.User
-                        , Responses.content = [ Responses.Input_Text{ Responses.text = "Say hello in one sentence." } ]
-                        , Responses.status = Nothing
-                        }
-                    ]),
-                  Responses.include = Nothing,
-                  Responses.parallel_tool_calls = Nothing,
-                  Responses.store = Nothing,
-                  Responses.instructions = Nothing,
-                  Responses.stream = Nothing,
-                  Responses.stream_options = Nothing,
-                  Responses.metadata = Nothing,
-                  Responses.temperature = Nothing,
-                  Responses.top_p = Nothing,
-                  Responses.tools = Nothing,
-                  Responses.tool_choice = Nothing
+                { Responses.model = chatModel
+                , Responses.input =
+                    Just
+                      ( Responses.Input
+                          [ Responses.Item_Input_Message
+                              { Responses.role = Responses.User
+                              , Responses.content = [Responses.Input_Text {Responses.text = "Say hello in one sentence."}]
+                              , Responses.status = Nothing
+                              }
+                          ]
+                      )
+                , Responses.include = Nothing
+                , Responses.parallel_tool_calls = Nothing
+                , Responses.store = Nothing
+                , Responses.instructions = Nothing
+                , Responses.stream = Nothing
+                , Responses.stream_options = Nothing
+                , Responses.metadata = Nothing
+                , Responses.temperature = Nothing
+                , Responses.top_p = Nothing
+                , Responses.tools = Nothing
+                , Responses.tool_choice = Nothing
                 }
 
           return ()
@@ -920,25 +923,28 @@ main = do
         HUnit.testCase "Responses - streaming haiku" do
           let req =
                 Responses._CreateResponse
-                  { Responses.model = chatModel,
-                    Responses.input = Just (Responses.Input
-                      [ Responses.Item_Input_Message
-                          { Responses.role = Responses.User
-                          , Responses.content = [ Responses.Input_Text{ Responses.text = "Stream a short haiku about the sea." } ]
-                          , Responses.status = Nothing
-                          }
-                      ]),
-                    Responses.include = Nothing,
-                    Responses.parallel_tool_calls = Nothing,
-                    Responses.store = Nothing,
-                    Responses.instructions = Nothing,
-                    Responses.stream = Nothing,
-                    Responses.stream_options = Nothing,
-                    Responses.metadata = Nothing,
-                    Responses.temperature = Nothing,
-                    Responses.top_p = Nothing,
-                    Responses.tools = Nothing,
-                    Responses.tool_choice = Nothing
+                  { Responses.model = chatModel
+                  , Responses.input =
+                      Just
+                        ( Responses.Input
+                            [ Responses.Item_Input_Message
+                                { Responses.role = Responses.User
+                                , Responses.content = [Responses.Input_Text {Responses.text = "Stream a short haiku about the sea."}]
+                                , Responses.status = Nothing
+                                }
+                            ]
+                        )
+                  , Responses.include = Nothing
+                  , Responses.parallel_tool_calls = Nothing
+                  , Responses.store = Nothing
+                  , Responses.instructions = Nothing
+                  , Responses.stream = Nothing
+                  , Responses.stream_options = Nothing
+                  , Responses.metadata = Nothing
+                  , Responses.temperature = Nothing
+                  , Responses.top_p = Nothing
+                  , Responses.tools = Nothing
+                  , Responses.tool_choice = Nothing
                   }
 
           acc <- IORef.newIORef (Text.empty)
@@ -946,9 +952,9 @@ main = do
 
           let onEvent (Left _err) = Concurrent.putMVar done ()
               onEvent (Right ev) = case ev of
-                Responses.ResponseTextDeltaEvent{ Responses.delta = d } ->
+                Responses.ResponseTextDeltaEvent {Responses.delta = d} ->
                   IORef.modifyIORef' acc (<> d)
-                Responses.ResponseCompletedEvent{} ->
+                Responses.ResponseCompletedEvent {} ->
                   Concurrent.putMVar done ()
                 _ -> pure ()
 
@@ -964,25 +970,28 @@ main = do
         HUnit.testCase "Responses - streaming with code interpreter" do
           let req =
                 Responses._CreateResponse
-                  { Responses.model = chatModel,
-                    Responses.input = Just (Responses.Input
-                      [ Responses.Item_Input_Message
-                          { Responses.role = Responses.User
-                          , Responses.content = [ Responses.Input_Text{ Responses.text = "Solve 3x + 11 = 14 and provide x as a number. Use the code interpreter." } ]
-                          , Responses.status = Nothing
-                          }
-                      ]),
-                    Responses.include = Nothing,
-                    Responses.parallel_tool_calls = Nothing,
-                    Responses.store = Nothing,
-                    Responses.instructions = Just "You are a math tutor. Use the code interpreter (python) tool to calculate answers when asked about math.",
-                    Responses.stream = Nothing,
-                    Responses.stream_options = Nothing,
-                    Responses.metadata = Nothing,
-                    Responses.temperature = Nothing,
-                    Responses.top_p = Nothing,
-                    Responses.tools = Just [Tool.codeInterpreterAuto],
-                    Responses.tool_choice = Just Tool.ToolChoiceRequired
+                  { Responses.model = chatModel
+                  , Responses.input =
+                      Just
+                        ( Responses.Input
+                            [ Responses.Item_Input_Message
+                                { Responses.role = Responses.User
+                                , Responses.content = [Responses.Input_Text {Responses.text = "Solve 3x + 11 = 14 and provide x as a number. Use the code interpreter."}]
+                                , Responses.status = Nothing
+                                }
+                            ]
+                        )
+                  , Responses.include = Nothing
+                  , Responses.parallel_tool_calls = Nothing
+                  , Responses.store = Nothing
+                  , Responses.instructions = Just "You are a math tutor. Use the code interpreter (python) tool to calculate answers when asked about math."
+                  , Responses.stream = Nothing
+                  , Responses.stream_options = Nothing
+                  , Responses.metadata = Nothing
+                  , Responses.temperature = Nothing
+                  , Responses.top_p = Nothing
+                  , Responses.tools = Just [Tool.codeInterpreterAuto]
+                  , Responses.tool_choice = Just Tool.ToolChoiceRequired
                   }
 
           acc <- IORef.newIORef (Text.empty)
@@ -991,15 +1000,15 @@ main = do
 
           let onEvent (Left _err) = Concurrent.putMVar done ()
               onEvent (Right ev) = case ev of
-                Responses.ResponseTextDeltaEvent{ Responses.delta = d } ->
+                Responses.ResponseTextDeltaEvent {Responses.delta = d} ->
                   IORef.modifyIORef' acc (<> d)
-                Responses.ResponseCodeInterpreterCallInProgressEvent{} ->
+                Responses.ResponseCodeInterpreterCallInProgressEvent {} ->
                   IORef.writeIORef sawCI True
-                Responses.ResponseCodeInterpreterCallInterpretingEvent{} ->
+                Responses.ResponseCodeInterpreterCallInterpretingEvent {} ->
                   IORef.writeIORef sawCI True
-                Responses.ResponseCodeInterpreterCallCompletedEvent{} -> do
+                Responses.ResponseCodeInterpreterCallCompletedEvent {} -> do
                   IORef.writeIORef sawCI True
-                Responses.ResponseCompletedEvent{} ->
+                Responses.ResponseCompletedEvent {} ->
                   Concurrent.putMVar done ()
                 _ -> pure ()
 
@@ -1014,31 +1023,31 @@ main = do
           return ()
 
   let tests =
-          speechTests
-            <> [ transcriptionTest,
-               translationTest,
-               completionsMinimalTest,
-               completionsMinimalReasoningTest,
-               completionsMaximalTest,
-               embeddingsTest,
-               fineTuningTest,
-               batchesTest,
-               uploadsTest,
-               createImageMinimalTest,
-               createImageMaximalTest,
-               createImageEditMinimalTest,
-               createImageEditMaximalTest,
-               createImageVariationMinimalTest,
-               createImageVariationMaximalTest,
-               createModerationTest,
-               responsesMinimalTest,
-               responsesStreamingHaikuTest,
-               responsesCodeInterpreterStreamingTest,
-               assistantsTest,
-               assistantsWithCodeInterpreterTest,
-               messagesTest,
-               threadsRunsStepsTest,
-               vectorStoreFilesTest
+        speechTests
+          <> [ transcriptionTest
+             , translationTest
+             , completionsMinimalTest
+             , completionsMinimalReasoningTest
+             , completionsMaximalTest
+             , embeddingsTest
+             , fineTuningTest
+             , batchesTest
+             , uploadsTest
+             , createImageMinimalTest
+             , createImageMaximalTest
+             , createImageEditMinimalTest
+             , createImageEditMaximalTest
+             , createImageVariationMinimalTest
+             , createImageVariationMaximalTest
+             , createModerationTest
+             , responsesMinimalTest
+             , responsesStreamingHaikuTest
+             , responsesCodeInterpreterStreamingTest
+             , assistantsTest
+             , assistantsWithCodeInterpreterTest
+             , messagesTest
+             , threadsRunsStepsTest
+             , vectorStoreFilesTest
              ]
 
   Tasty.defaultMain (Tasty.testGroup "Tests" tests)
