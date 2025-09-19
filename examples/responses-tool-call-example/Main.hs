@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedLists #-}
@@ -5,7 +6,7 @@
 
 module Main where
 
-import Data.Aeson (FromJSON (..), (.:), (.=), withObject)
+import Data.Aeson (FromJSON (..), withObject, (.:), (.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as LBS
 import Data.Foldable (toList)
@@ -21,154 +22,177 @@ import OpenAI.V1.Tool (Function (..), Tool (..))
 import System.Environment (getEnv)
 
 -- | Simple JSON payload for parsing function arguments
-newtype HoroscopeArgs = HoroscopeArgs { sign :: Text }
+newtype HoroscopeArgs = HoroscopeArgs {sign :: Text}
+  deriving stock (Show)
 
 instance FromJSON HoroscopeArgs where
-    parseJSON = withObject "HoroscopeArgs" $ \obj -> do
-        sign <- obj .: "sign"
-        pure HoroscopeArgs{ sign }
+  parseJSON = withObject "HoroscopeArgs" $ \obj -> do
+    sign <- obj .: "sign"
+    pure HoroscopeArgs {sign}
 
+-- | Generate a mock horoscope for a given astrological sign
 getHoroscope :: Text -> Text
 getHoroscope sign = sign <> ": Next Tuesday you will befriend a baby otter."
 
+-- | Tool definition for the horoscope function
 horoscopeTool :: Tool
 horoscopeTool =
-    Tool_Function
-        Function
-            { description = Just "Get today's horoscope for an astrological sign."
-            , name = "get_horoscope"
-            , parameters =
-                Just . Aeson.object $
-                    [ "type" .= ("object" :: Text)
-                    , "properties"
-                        .= Aeson.object
-                            [ "sign"
-                                .= Aeson.object
-                                    [ "type" .= ("string" :: Text)
-                                    , "description" .= ("An astrological sign like Taurus or Aquarius" :: Text)
-                                    ]
-                            ]
-                    , "required" .= (["sign"] :: [Text])
-                    , "additionalProperties" .= False
-                    ]
-            , strict = Just True
-            }
+  Tool_Function
+    Function
+      { description = Just "Get today's horoscope for an astrological sign.",
+        name = "get_horoscope",
+        parameters =
+          Just . Aeson.object $
+            [ "type" .= ("object" :: Text),
+              "properties"
+                .= Aeson.object
+                  [ "sign"
+                      .= Aeson.object
+                        [ "type" .= ("string" :: Text),
+                          "description" .= ("An astrological sign like Taurus or Aquarius" :: Text)
+                        ]
+                  ],
+              "required" .= (["sign"] :: [Text]),
+              "additionalProperties" .= False
+            ],
+        strict = Just True
+      }
 
 main :: IO ()
 main = do
-    key <- Text.pack <$> getEnv "OPENAI_KEY"
-    env <- V1.getClientEnv "https://api.openai.com"
+  key <- Text.pack <$> getEnv "OPENAI_KEY"
+  env <- V1.getClientEnv "https://api.openai.com"
 
-    let Methods{ createResponse } = V1.makeMethods env key Nothing Nothing
-        userMessage =
-            Responses.Item_Input_Message
-                { Responses.role = Responses.User
-                , Responses.content = Vector.singleton Responses.Input_Text{ Responses.text = "What is my horoscope? I am an Aquarius." }
-                , Responses.status = Nothing
-                }
-        initialItems = [userMessage]
-        initialInput = Responses.Input (Vector.fromList initialItems)
-        firstRequest =
+  let Methods {createResponse} = V1.makeMethods env key Nothing Nothing
+      userMessage =
+        Responses.Item_Input_Message
+          { Responses.role = Responses.User,
+            Responses.content = Vector.singleton Responses.Input_Text {Responses.text = "What is my horoscope? I am an Aquarius."},
+            Responses.status = Nothing
+          }
+      initialItems = [userMessage]
+      initialInput = Responses.Input (Vector.fromList initialItems)
+      firstRequest =
+        Responses._CreateResponse
+          { Responses.model = "gpt-5",
+            Responses.input = Just initialInput,
+            Responses.tools = Just [horoscopeTool]
+          }
+
+  firstResponse <- createResponse firstRequest
+
+  let Responses.ResponseObject {Responses.output = outputItems} = firstResponse
+      outputList = toList outputItems
+      hasFunctionCall = any isFunctionCall outputList
+
+  if not hasFunctionCall
+    then mapM_ TextIO.putStrLn (collectText firstResponse)
+    else do
+      additionalInputs <- gatherInputs outputList
+
+      let finalItems = initialItems <> additionalInputs
+          finalInput = Responses.Input (Vector.fromList finalItems)
+          secondRequest =
             Responses._CreateResponse
-                { Responses.model = "gpt-5"
-                , Responses.input = Just initialInput
-                , Responses.tools = Just [horoscopeTool]
-                }
+              { Responses.model = "gpt-5",
+                Responses.instructions = Just "Respond only with a horoscope generated by a tool.",
+                Responses.input = Just finalInput,
+                Responses.tools = Just [horoscopeTool]
+              }
 
-    firstResponse <- createResponse firstRequest
+      finalResponse <- createResponse secondRequest
 
-    let Responses.ResponseObject{ Responses.output = outputItems } = firstResponse
-        outputList = toList outputItems
-        hasFunctionCall = Prelude.any isFunctionCall outputList
+      mapM_ TextIO.putStrLn (collectText finalResponse)
 
-    if not hasFunctionCall
-        then mapM_ TextIO.putStrLn (collectText firstResponse)
-        else do
-            additionalInputs <- gatherInputs outputList
-
-            let finalItems = initialItems <> additionalInputs
-                finalInput = Responses.Input (Vector.fromList finalItems)
-                secondRequest =
-                    Responses._CreateResponse
-                        { Responses.model = "gpt-5"
-                        , Responses.instructions = Just "Respond only with a horoscope generated by a tool."
-                        , Responses.input = Just finalInput
-                        , Responses.tools = Just [horoscopeTool]
-                        }
-
-            finalResponse <- createResponse secondRequest
-
-            mapM_ TextIO.putStrLn (collectText finalResponse)
-
+-- | Check if an OutputItem is a function call
 isFunctionCall :: Responses.OutputItem -> Bool
-isFunctionCall Responses.Item_FunctionToolCall{} = True
+isFunctionCall Responses.Item_FunctionToolCall {} = True
 isFunctionCall _ = False
 
+-- | Convert output items to input items for the next request
 gatherInputs :: [Responses.OutputItem] -> IO [Responses.InputItem]
 gatherInputs [] = pure []
 gatherInputs (item : rest) =
-    case item of
-        Responses.Item_Reasoning{ Responses.reasoning_id } -> do
-            restInputs <- gatherInputs rest
-            let reference = Responses.Item_Input_Item_Reference{ Responses.id = Just reasoning_id }
-            pure (reference : restInputs)
-        call@Responses.Item_FunctionToolCall{} -> do
-            (callInput, callOutput) <- processFunctionCall call
-            restInputs <- gatherInputs rest
-            pure (callInput : callOutput : restInputs)
-        _ -> gatherInputs rest
+  case item of
+    Responses.Item_Reasoning {Responses.reasoning_id} -> do
+      restInputs <- gatherInputs rest
+      let reference = Responses.Item_Input_Item_Reference {Responses.id = Just reasoning_id}
+      pure (reference : restInputs)
+    call@Responses.Item_FunctionToolCall {} -> do
+      (callInput, callOutput) <- processFunctionCall call
+      restInputs <- gatherInputs rest
+      pure (callInput : callOutput : restInputs)
+    _ -> gatherInputs rest
 
+-- | Process a function call and generate input items for the response
+processFunctionCall ::
+  Responses.OutputItem ->
+  IO (Responses.InputItem, Responses.InputItem)
 processFunctionCall
-    :: Responses.OutputItem
-    -> IO (Responses.InputItem, Responses.InputItem)
-processFunctionCall
-    Responses.Item_FunctionToolCall
-        { Responses.function_id = functionId
-        , Responses.function_call_id = callId
-        , Responses.function_name = functionName
-        , Responses.function_arguments = argumentsText
-        , Responses.function_status = statusText
-        } = do
+  Responses.Item_FunctionToolCall
+    { Responses.function_id = functionId,
+      Responses.function_call_id = callId,
+      Responses.function_name = functionName,
+      Responses.function_arguments = argumentsText,
+      Responses.function_status = statusText
+    } = do
     let callInput =
-            Responses.Item_Input_Function_Call
-                { Responses.id = functionId
-                , Responses.call_id = callId
-                , Responses.name = functionName
-                , Responses.arguments = argumentsText
-                , Responses.status = statusText
-                }
+          Responses.Item_Input_Function_Call
+            { Responses.id = functionId,
+              Responses.call_id = callId,
+              Responses.name = functionName,
+              Responses.arguments = argumentsText,
+              Responses.status = statusText
+            }
         argumentsBytes = Text.Encoding.encodeUtf8 argumentsText
 
     case Aeson.eitherDecodeStrict' argumentsBytes of
-        Left err -> do
-            let payload = Aeson.object ["error" .= Text.pack err]
-                outputText = Text.Encoding.decodeUtf8 (LBS.toStrict (Aeson.encode payload))
-                outputItem =
-                    Responses.Item_Input_Function_Call_Output
-                        { Responses.id = Nothing
-                        , Responses.call_id = callId
-                        , Responses.output = outputText
-                        , Responses.status = Just "incomplete"
-                        }
-            pure (callInput, outputItem)
-
-        Right HoroscopeArgs{ sign } -> do
-            let horoscope = getHoroscope sign
-                payload = Aeson.object ["horoscope" .= horoscope]
-                outputText = Text.Encoding.decodeUtf8 (LBS.toStrict (Aeson.encode payload))
-                outputItem =
-                    Responses.Item_Input_Function_Call_Output
-                        { Responses.id = Nothing
-                        , Responses.call_id = callId
-                        , Responses.output = outputText
-                        , Responses.status = Just "completed"
-                        }
-            pure (callInput, outputItem)
+      Left err -> do
+        let payload = Aeson.object ["error" .= Text.pack err]
+            outputText = Text.Encoding.decodeUtf8 (LBS.toStrict (Aeson.encode payload))
+            outputItem =
+              Responses.Item_Input_Function_Call_Output
+                { Responses.id = Nothing,
+                  Responses.call_id = callId,
+                  Responses.output = outputText,
+                  Responses.status = Just "incomplete"
+                }
+        pure (callInput, outputItem)
+      Right HoroscopeArgs {sign} -> do
+        let horoscope = getHoroscope sign
+            payload = Aeson.object ["horoscope" .= horoscope]
+            outputText = Text.Encoding.decodeUtf8 (LBS.toStrict (Aeson.encode payload))
+            outputItem =
+              Responses.Item_Input_Function_Call_Output
+                { Responses.id = Nothing,
+                  Responses.call_id = callId,
+                  Responses.output = outputText,
+                  Responses.status = Just "completed"
+                }
+        pure (callInput, outputItem)
 processFunctionCall other =
-    error $ "Unexpected output item: " <> show other
+  -- This case should not occur if the API is used correctly,
+  -- but we handle it gracefully by returning empty outputs
+  let emptyInput =
+        Responses.Item_Input_Function_Call
+          { Responses.id = Nothing,
+            Responses.call_id = "",
+            Responses.name = "unknown",
+            Responses.arguments = "{}",
+            Responses.status = Just "failed"
+          }
+      emptyOutput =
+        Responses.Item_Input_Function_Call_Output
+          { Responses.id = Nothing,
+            Responses.call_id = "",
+            Responses.output = "{\"error\": \"Unexpected output item type\"}",
+            Responses.status = Just "failed"
+          }
+   in pure (emptyInput, emptyOutput)
 
+-- | Extract text content from a response object
 collectText :: Responses.ResponseObject -> [Text]
-collectText Responses.ResponseObject{ Responses.output } = do
-    Responses.Item_OutputMessage{ Responses.message_content } <- toList output
-    Responses.Output_Text{ Responses.text } <- toList message_content
-    pure text
+collectText Responses.ResponseObject {Responses.output} = do
+  Responses.Item_OutputMessage {Responses.message_content} <- toList output
+  Responses.Output_Text {Responses.text} <- toList message_content
+  pure text

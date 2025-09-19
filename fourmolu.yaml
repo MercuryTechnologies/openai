@@ -1,0 +1,75 @@
+# Run `fourmolu -h` from within the Nix shell to see all the config options
+indentation: 2
+comma-style: leading # 'leading' or 'trailing'
+record-brace-space: true # rec {x = 1} vs. rec{x = 1}
+indent-wheres: true # 'false' means save space by only half-indenting the 'where' keyword
+import-export-style: trailing
+respectful: false # don't be too opinionated about newlines etc.
+haddock-style: single-line # 'single-line' or 'multi-line', i.e., '--' vs. '{-'
+newlines-between-decls: 1 # number of newlines between top-level declarations
+let-style: inline
+single-constraint-parens: auto
+trailing-section-operators: true
+
+fixities:
+  # keep-sorted start
+  - "infix 4 !=."
+  - "infix 4 /="
+  - "infix 4 <"
+  - "infix 4 <."
+  - "infix 4 <="
+  - "infix 4 <=."
+  - "infix 4 =="
+  - "infix 4 ==."
+  - "infix 4 ==="
+  - "infix 4 >"
+  - "infix 4 >."
+  - "infix 4 >="
+  - "infix 4 >=."
+  - "infix 4 `between`"
+  - "infix 5 `in_`"
+  - "infix 5 `notIn`"
+  - "infix 9 `on`"
+  - "infixl 1 <&>"
+  - "infixl 1 >>="
+  - "infixl 2 :&"
+  - "infixl 2 `crossJoinLateral`"
+  - "infixl 2 `crossJoin`"
+  - "infixl 2 `fullOuterJoin`"
+  - "infixl 2 `innerJoinLateral`"
+  - "infixl 2 `innerJoin`"
+  - "infixl 2 `leftJoinLateral`"
+  - "infixl 2 `leftJoin`"
+  - "infixl 2 `rightJoin`"
+  - "infixl 3 <|>"
+  - "infixl 4 <$"
+  - "infixl 4 <$>"
+  - "infixl 4 <*>"
+  - "infixl 4 <.>"
+  - "infixl 6 +"
+  - "infixl 6 -"
+  - "infixl 6 <+>"
+  - "infixl 7 *"
+  - "infixl 7 /"
+  - "infixl 9 .!" # Very silly, only used in `src/Client/Veryfi/Document/V8/Types.hs`
+  - "infixl 9 .:"
+  - "infixl 9 .:?"
+  - "infixl 9 ?."
+  - "infixl 9 ^."
+  - "infixr 0 $"
+  - "infixr 0 :::"
+  - "infixr 1 <=<"
+  - "infixr 1 =<<"
+  - "infixr 1 |:|"
+  - "infixr 2 ||"
+  - "infixr 2 ||."
+  - "infixr 2 |||"
+  - "infixr 3 &&"
+  - "infixr 3 &&."
+  - "infixr 5 ++"
+  - "infixr 6 <>"
+  - "infixr 8 **"
+  - "infixr 8 -:"
+  - "infixr 8 .="
+  - "infixr 9 ."
+  # keep-sorted end

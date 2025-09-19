@@ -25,6 +25,7 @@
 
             nativeBuildInputs = [
               pkgs.haskell-language-server
+              pkgs.haskellPackages.fourmolu
 
               (pkgs.vscode-with-extensions.override {
                 vscodeExtensions = [

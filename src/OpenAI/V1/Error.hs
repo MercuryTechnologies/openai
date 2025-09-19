@@ -1,8 +1,9 @@
 -- | Error information
 module OpenAI.V1.Error
-    ( -- * Types
-      Error(..)
-    ) where
+  ( -- * Types
+    Error (..),
+  )
+where
 
 import OpenAI.Prelude
 
@@ -12,9 +13,10 @@ import OpenAI.Prelude
 -- but in practice the `Error` record can be present with all fields omitted,
 -- so they are all marked optional (`Maybe`) here
 data Error = Error
-    { code :: Maybe Text
-    , message :: Maybe Text
-    , param :: Maybe Text
-    , line :: Maybe Natural
-    } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON, ToJSON)
+  { code :: Maybe Text
+  , message :: Maybe Text
+  , param :: Maybe Text
+  , line :: Maybe Natural
+  }
+  deriving stock (Generic, Show)
+  deriving anyclass (FromJSON, ToJSON)
