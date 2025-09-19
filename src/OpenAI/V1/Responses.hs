@@ -38,7 +38,6 @@ module OpenAI.V1.Responses
 import OpenAI.Prelude hiding (Input(..))
 import Data.Aeson (Object)
 import qualified Data.Aeson as Aeson
-import Data.Aeson.Types (camelTo2)
 -- no TH; inline JSON instances for payloads
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
@@ -126,7 +125,7 @@ inputItemOptions =
     aesonOptions
         { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
         , tagSingleConstructors = True
-        , constructorTagModifier = camelTo2 '_' . stripPrefix "Item_Input_"
+        , constructorTagModifier = stripPrefix "Item_Input_"
         }
 
 instance FromJSON InputItem where
