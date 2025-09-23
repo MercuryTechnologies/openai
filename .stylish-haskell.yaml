@@ -1,0 +1,25 @@
+steps:
+  - module_header:
+      sort: false
+
+      separate_lists: false
+
+      break_where: exports
+
+  - imports:
+      align: group
+
+      pad_module_names: false
+
+      long_list_align: new_line_multiline
+
+      separate_lists: false
+
+  - language_pragmas:
+      style: vertical
+
+  - tabs: {}
+
+  - trailing_whitespace: {}
+
+cabal: true
