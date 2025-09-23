@@ -1,16 +1,17 @@
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module Main where
 
 import Data.Foldable (toList)
+import System.Environment (getEnv)
+
 import qualified Data.Text as Text
 import qualified Data.Text.IO as TextIO
 import qualified OpenAI.V1 as V1
 import qualified OpenAI.V1.Responses as Responses
-import System.Environment (getEnv)
 
 main :: IO ()
 main = do

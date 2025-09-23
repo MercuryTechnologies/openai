@@ -5,7 +5,6 @@ module OpenAI.V1.VectorStores.Files
     , CreateVectorStoreFile(..)
     , _CreateVectorStoreFile
     , VectorStoreFileObject(..)
-
       -- * Servant
     , API
     ) where
@@ -13,8 +12,8 @@ module OpenAI.V1.VectorStores.Files
 import OpenAI.Prelude
 import OpenAI.V1.ChunkingStrategy
 import OpenAI.V1.DeletionStatus
-import OpenAI.V1.Files (FileID)
 import OpenAI.V1.Error
+import OpenAI.V1.Files (FileID)
 import OpenAI.V1.ListOf
 import OpenAI.V1.Order
 import OpenAI.V1.VectorStores (VectorStoreID)

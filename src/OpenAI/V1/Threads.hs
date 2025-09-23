@@ -9,12 +9,10 @@ module OpenAI.V1.Threads
     , Message(..)
     , Content(..)
     , ThreadObject(..)
-
       -- * Other types
     , ImageURL(..)
     , ImageFile(..)
     , Attachment(..)
-
       -- * Servant
     , API
     ) where

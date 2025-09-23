@@ -5,7 +5,6 @@ module OpenAI.V1.VectorStores.FileBatches
     , CreateVectorStoreFileBatch(..)
     , _CreateVectorStoreFileBatch
     , VectorStoreFilesBatchObject(..)
-
       -- * Servant
     , API
     ) where

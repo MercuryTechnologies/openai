@@ -1,12 +1,12 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module Main where
 
 import Control.Monad (foldM, when)
-import Data.Aeson (Value (..), (.=))
+import Data.Aeson (Value(..), (.=))
 import Data.Text (Text)
 import Data.Vector (Vector)
 import GHC.Exts (toList)

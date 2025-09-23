@@ -7,11 +7,9 @@ module OpenAI.V1.VectorStores
     , ModifyVectorStore(..)
     , _ModifyVectorStore
     , VectorStoreObject(..)
-
       -- * Other types
     , ExpiresAfter(..)
     , Status(..)
-
       -- * Servant
     , API
     ) where
@@ -21,8 +19,8 @@ import OpenAI.V1.AutoOr
 import OpenAI.V1.ChunkingStrategy
 import OpenAI.V1.DeletionStatus
 import OpenAI.V1.Files (FileID)
-import OpenAI.V1.Order
 import OpenAI.V1.ListOf
+import OpenAI.V1.Order
 import OpenAI.V1.VectorStores.FileCounts
 
 -- | Vector store ID

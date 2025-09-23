@@ -7,7 +7,6 @@ module OpenAI.V1.Assistants
     , ModifyAssistant(..)
     , _ModifyAssistant
     , AssistantObject(..)
-
       -- * Other types
     , RankingOptions
     , FileSearch(..)
@@ -16,7 +15,6 @@ module OpenAI.V1.Assistants
     , CodeInterpreterResources(..)
     , FileSearchResources(..)
     , ToolResources(..)
-
       -- * Servant
     , API
     ) where

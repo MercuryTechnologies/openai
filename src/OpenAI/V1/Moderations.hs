@@ -4,11 +4,9 @@ module OpenAI.V1.Moderations
       CreateModeration(..)
     , _CreateModeration
     , Moderation(..)
-
       -- * Other types
     , InputType(..)
     , Result(..)
-
       -- * Servant
     , API
     ) where
