@@ -1,17 +1,18 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module Main where
+
+import System.Environment (getEnv)
+import System.IO (hFlush, hPutStrLn, stderr, stdout)
 
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified OpenAI.V1 as V1
 import qualified OpenAI.V1.Responses as Responses
 import qualified OpenAI.V1.Tool as Tool
-import System.Environment (getEnv)
-import System.IO (hFlush, hPutStrLn, stderr, stdout)
 
 main :: IO ()
 main = do
@@ -42,7 +43,7 @@ main = do
             }
 
     createResponseStreamTyped reqHaiku onEvent
-    
+
     putStrLn "--------------------------------"
 
     -- 2) Web search example

@@ -5,11 +5,11 @@ module OpenAI.V1.Files
     , UploadFile(..)
     , _UploadFile
     , FileObject(..)
-    -- * Other types
+      -- * Other types
     , Order(..)
     , Purpose(..)
     , DeletionStatus(..)
-    -- * Servant
+      -- * Servant
     , API
     ) where
 

@@ -2,7 +2,6 @@
 module OpenAI.V1.ChunkingStrategy
     ( -- * Main types
       ChunkingStrategy(..)
-
       -- * Other types
     , Static(..)
     ) where

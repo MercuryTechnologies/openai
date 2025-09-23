@@ -2,7 +2,6 @@
 module OpenAI.V1.ToolResources
     ( -- * Main types
       ToolResources(..)
-
       -- * Other types
     , CodeInterpreterResources(..)
     , Static(..)

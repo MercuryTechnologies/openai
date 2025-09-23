@@ -7,14 +7,15 @@ module OpenAI.V1.Tool
     , Function(..)
     , ToolChoice(..)
     , CodeInterpreterContainer(..)
-    -- * Helpers
+      -- * Helpers
     , codeInterpreter
     , codeInterpreterAuto
     , codeInterpreterWithFiles
     ) where
 
-import OpenAI.Prelude
 import Data.Aeson ((.:), (.:?), (.=))
+import OpenAI.Prelude
+
 import qualified Data.Aeson as Aeson
 import qualified Data.Vector as V
 
@@ -94,7 +95,7 @@ data CodeInterpreterContainer
 instance ToJSON CodeInterpreterContainer where
     toJSON (CodeInterpreterContainer_ID container_id) = toJSON container_id
     toJSON (CodeInterpreterContainer_Auto file_ids) =
-        Aeson.object $ "type" .= String "auto" : 
+        Aeson.object $ "type" .= String "auto" :
                       maybe [] (\ids -> ["file_ids" .= ids]) file_ids
 
 instance FromJSON CodeInterpreterContainer where

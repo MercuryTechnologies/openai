@@ -1,21 +1,19 @@
 -- | @\/v1\/threads/:thread_id/messages@
 module OpenAI.V1.Threads.Messages
     ( -- * Main types
-        MessageID(..)
-      , Message(..)
-      , ModifyMessage(..)
-      , _ModifyMessage
-      , MessageObject(..)
-
+      MessageID(..)
+    , Message(..)
+    , ModifyMessage(..)
+    , _ModifyMessage
+    , MessageObject(..)
       -- * Other types
-      , Status(..)
-      , IncompleteDetails(..)
-      , File(..)
-      , Annotation(..)
-      , TextObject(..)
-
+    , Status(..)
+    , IncompleteDetails(..)
+    , File(..)
+    , Annotation(..)
+    , TextObject(..)
       -- * Servant
-      , API
+    , API
     ) where
 
 import OpenAI.Prelude

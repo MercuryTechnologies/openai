@@ -3,7 +3,6 @@ module OpenAI.V1.Threads.Runs.Steps
     ( -- * Main types
       StepID(..)
     , RunStepObject(..)
-
       -- * Other types
     , Status(..)
     , Image(..)
@@ -16,7 +15,6 @@ module OpenAI.V1.Threads.Runs.Steps
     , Function(..)
     , ToolCall(..)
     , StepDetails(..)
-
       -- * Servant
     , API
     ) where
@@ -26,9 +24,9 @@ import OpenAI.V1.Assistants (AssistantID)
 import OpenAI.V1.Error
 import OpenAI.V1.Files (FileID)
 import OpenAI.V1.ListOf
-import OpenAI.V1.Threads.Messages (MessageID)
 import OpenAI.V1.Order
 import OpenAI.V1.Threads (ThreadID)
+import OpenAI.V1.Threads.Messages (MessageID)
 import OpenAI.V1.Threads.Runs (RunID)
 import OpenAI.V1.Usage
 

@@ -40,50 +40,43 @@
 
 module OpenAI.V1
     ( -- * Methods
-      getClientEnv
+      Methods(..)
+    , getClientEnv
     , makeMethods
-    , Methods(..)
-
       -- * Servant
     , API
     ) where
 
+import Control.Monad (foldM)
 import Data.ByteString.Char8 ()
 import Data.Proxy (Proxy(..))
 import OpenAI.Prelude
 import OpenAI.V1.Audio.Speech (CreateSpeech)
-import OpenAI.V1.Embeddings (CreateEmbeddings, EmbeddingObject)
+import OpenAI.V1.Audio.Transcriptions (CreateTranscription, TranscriptionObject)
+import OpenAI.V1.Audio.Translations (CreateTranslation, TranslationObject)
 import OpenAI.V1.Batches (BatchID, BatchObject, CreateBatch)
+import OpenAI.V1.Chat.Completions (ChatCompletionObject, CreateChatCompletion)
 import OpenAI.V1.DeletionStatus (DeletionStatus)
+import OpenAI.V1.Embeddings (CreateEmbeddings, EmbeddingObject)
 import OpenAI.V1.Files (FileID, FileObject, UploadFile)
-import OpenAI.V1.Images.Image (ImageObject)
-import OpenAI.V1.Images.Generations (CreateImage)
 import OpenAI.V1.Images.Edits (CreateImageEdit)
+import OpenAI.V1.Images.Generations (CreateImage)
+import OpenAI.V1.Images.Image (ImageObject)
 import OpenAI.V1.Images.Variations (CreateImageVariation)
 import OpenAI.V1.ListOf (ListOf(..))
 import OpenAI.V1.Message (Message)
 import OpenAI.V1.Models (Model, ModelObject)
 import OpenAI.V1.Moderations (CreateModeration, Moderation)
 import OpenAI.V1.Order (Order)
-import OpenAI.V1.Threads (Thread, ThreadID, ModifyThread, ThreadObject)
+import OpenAI.V1.Responses (CreateResponse, InputItem, ResponseObject)
+import OpenAI.V1.Threads (ModifyThread, Thread, ThreadID, ThreadObject)
+import OpenAI.V1.Threads.Messages (MessageID, MessageObject, ModifyMessage)
 import OpenAI.V1.Threads.Runs.Steps (RunStepObject(..), StepID)
 import Servant.Client (ClientEnv)
 import Servant.Multipart.Client ()
 
 import OpenAI.V1.Assistants
     (AssistantID, AssistantObject, CreateAssistant, ModifyAssistant)
-import OpenAI.V1.Audio.Transcriptions
-    (CreateTranscription, TranscriptionObject)
-import OpenAI.V1.Audio.Translations
-    (CreateTranslation, TranslationObject)
-import OpenAI.V1.Chat.Completions
-    (ChatCompletionObject, CreateChatCompletion)
-import OpenAI.V1.Responses
-    ( CreateResponse
-    , ResponseObject
-    , InputItem
-    )
-import qualified OpenAI.V1.Responses as Responses
 import OpenAI.V1.FineTuning.Jobs
     ( CheckpointObject
     , CreateFineTuningJob
@@ -91,8 +84,6 @@ import OpenAI.V1.FineTuning.Jobs
     , FineTuningJobID
     , JobObject
     )
-import OpenAI.V1.Threads.Messages
-    (MessageID, MessageObject, ModifyMessage)
 import OpenAI.V1.Threads.Runs
     ( CreateRun
     , CreateThreadAndRun
@@ -115,45 +106,42 @@ import OpenAI.V1.VectorStores
     , VectorStoreID
     , VectorStoreObject(..)
     )
-import OpenAI.V1.VectorStores.Files
-    ( CreateVectorStoreFile(..)
-    , VectorStoreFileID
-    , VectorStoreFileObject(..)
-    )
 import OpenAI.V1.VectorStores.FileBatches
     ( CreateVectorStoreFileBatch(..)
-    , VectorStoreFilesBatchObject(..)
     , VectorStoreFileBatchID
+    , VectorStoreFilesBatchObject(..)
     )
+import OpenAI.V1.VectorStores.Files
+    (CreateVectorStoreFile(..), VectorStoreFileID, VectorStoreFileObject(..))
 
 import qualified Control.Exception as Exception
+import qualified Data.Aeson as Aeson
+import qualified Data.ByteString as SBS
+import qualified Data.ByteString.Char8 as S8
+import qualified Data.IORef as IORef
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
 import qualified Network.HTTP.Types.Status as Status
-import qualified Data.Aeson as Aeson
-import qualified Data.ByteString as SBS
-import qualified Data.ByteString.Char8 as S8
-import Control.Monad (foldM)
-import qualified Data.IORef as IORef
 import qualified OpenAI.V1.Assistants as Assistants
 import qualified OpenAI.V1.Audio as Audio
 import qualified OpenAI.V1.Batches as Batches
 import qualified OpenAI.V1.Chat.Completions as Chat.Completions
 import qualified OpenAI.V1.Embeddings as Embeddings
-import qualified OpenAI.V1.FineTuning.Jobs as FineTuning.Jobs
 import qualified OpenAI.V1.Files as Files
+import qualified OpenAI.V1.FineTuning.Jobs as FineTuning.Jobs
 import qualified OpenAI.V1.Images as Images
 import qualified OpenAI.V1.Models as Models
 import qualified OpenAI.V1.Moderations as Moderations
-import qualified OpenAI.V1.Threads.Runs as Threads.Runs
-import qualified OpenAI.V1.Threads.Runs.Steps as Threads.Runs.Steps
+import qualified OpenAI.V1.Responses as Responses
 import qualified OpenAI.V1.Threads as Threads
 import qualified OpenAI.V1.Threads.Messages as Messages
+import qualified OpenAI.V1.Threads.Runs as Threads.Runs
+import qualified OpenAI.V1.Threads.Runs.Steps as Threads.Runs.Steps
 import qualified OpenAI.V1.Uploads as Uploads
 import qualified OpenAI.V1.VectorStores as VectorStores
-import qualified OpenAI.V1.VectorStores.Files as VectorStores.Files
 import qualified OpenAI.V1.VectorStores.FileBatches as VectorStores.FileBatches
+import qualified OpenAI.V1.VectorStores.Files as VectorStores.Files
 import qualified OpenAI.V1.VectorStores.Status as VectorStores.Status
 import qualified Servant.Client as Client
 
@@ -271,7 +259,7 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
                 :<|>  retrieveRunStep
                 )
             )
-      
+
       :<|>  (   (\x -> x "assistants=v2")
             ->  (     createVectorStore
                 :<|>  listVectorStores_
