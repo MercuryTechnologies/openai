@@ -23,7 +23,7 @@ main = do
     let req = Responses._CreateResponse
             { Responses.model = "gpt-5"
             , Responses.input = Just (Responses.Input
-                [ Responses.Item_InputMessage
+                [ Responses.Item_Input_Message
                     { Responses.role = Responses.User
                     , Responses.content = [ Responses.Input_Text{ Responses.text = "Tell me a three sentence bedtime story about a unicorn." } ]
                     , Responses.status = Nothing

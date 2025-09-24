@@ -34,7 +34,7 @@ main = do
     let reqHaiku = Responses._CreateResponse
             { Responses.model = "gpt-5-mini"
             , Responses.input = Just (Responses.Input
-                [ Responses.Item_InputMessage
+                [ Responses.Item_Input_Message
                     { Responses.role = Responses.User
                     , Responses.content = [ Responses.Input_Text{ Responses.text = "Write a short haiku about the sea." } ]
                     , Responses.status = Nothing
@@ -50,7 +50,7 @@ main = do
     let reqSearch = Responses._CreateResponse
             { Responses.model = "gpt-5-mini"
             , Responses.input = Just (Responses.Input
-                [ Responses.Item_InputMessage
+                [ Responses.Item_Input_Message
                     { Responses.role = Responses.User
                     , Responses.content = [ Responses.Input_Text{ Responses.text = "Use web_search to find current news about France and display a concise summary. Do not include citations, references, or URLs in the output; provide only the summary text." } ]
                     , Responses.status = Nothing
@@ -68,7 +68,7 @@ main = do
             { Responses.model = "gpt-5-mini"
             , Responses.instructions = Just "You are a personal math tutor. When asked a math question, write and run code using the python tool to answer the question."
             , Responses.input = Just (Responses.Input
-                [ Responses.Item_InputMessage
+                [ Responses.Item_Input_Message
                     { Responses.role = Responses.User
                     , Responses.content = [ Responses.Input_Text{ Responses.text = "I need to solve the equation 3x + 11 = 14. Can you help me?" } ]
                     , Responses.status = Nothing

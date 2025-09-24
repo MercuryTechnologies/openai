@@ -35,11 +35,21 @@ module OpenAI.V1.Responses
     ) where
 
 import Data.Aeson (Object)
+import qualified Data.Aeson as Aeson
 import OpenAI.Prelude hiding (Input(..))
 -- no TH; inline JSON instances for payloads
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
-import OpenAI.V1.Tool (Tool, ToolChoice)
+import qualified Data.Aeson.Key as Key
+import qualified Data.Aeson.KeyMap as KeyMap
+import qualified Data.Vector as Vector
+import OpenAI.V1.Tool
+    ( Tool
+    , ToolChoice
+    , toolChoiceToResponsesValue
+    , toolToResponsesValue
+    , unflattenToolValue
+    )
 
 -- | Input for the Responses API: a list of input items
 newtype Input = Input (Vector InputItem)
@@ -86,10 +96,26 @@ instance ToJSON InputContent where
 
 -- | An input item
 data InputItem
-    = Item_InputMessage
+    = Item_Input_Message
         { role :: InputRole
         , content :: Vector InputContent
         , status :: Maybe Text
+        }
+    | Item_Input_Function_Call
+        { id :: Maybe Text
+        , call_id :: Text
+        , name :: Text
+        , arguments :: Text
+        , status :: Maybe Text
+        }
+    | Item_Input_Function_Call_Output
+        { id :: Maybe Text
+        , call_id :: Text
+        , output :: Text
+        , status :: Maybe Text
+        }
+    | Item_Input_Item_Reference
+        { id :: Maybe Text
         }
     deriving stock (Generic, Show)
 
@@ -98,7 +124,7 @@ inputItemOptions =
     aesonOptions
         { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
         , tagSingleConstructors = True
-        , constructorTagModifier = stripPrefix "Item_Input"
+        , constructorTagModifier = stripPrefix "Item_Input_"
         }
 
 instance FromJSON InputItem where
@@ -106,6 +132,52 @@ instance FromJSON InputItem where
 
 instance ToJSON InputItem where
     toJSON = genericToJSON inputItemOptions
+
+keyTools :: Key.Key
+keyTools = Key.fromText "tools"
+
+keyToolChoice :: Key.Key
+keyToolChoice = Key.fromText "tool_choice"
+
+flattenResponseToolFields
+    :: Maybe (Vector Tool)
+    -> Maybe ToolChoice
+    -> KeyMap.KeyMap Value
+    -> KeyMap.KeyMap Value
+flattenResponseToolFields mTools mChoice o =
+    let oWithTools = case mTools of
+            Nothing -> o
+            Just ts -> KeyMap.insert keyTools (Aeson.Array (Vector.map toolToResponsesValue ts)) o
+        oWithChoice = case mChoice of
+            Nothing -> oWithTools
+            Just choice -> KeyMap.insert keyToolChoice (toolChoiceToResponsesValue choice) oWithTools
+    in oWithChoice
+
+unflattenResponseToolFields :: KeyMap.KeyMap Value -> KeyMap.KeyMap Value
+unflattenResponseToolFields = adjustChoice . adjustTools
+  where
+    adjustTools = adjustKey keyTools (mapArrayValues unflattenToolValue)
+    adjustChoice = adjustKey keyToolChoice unflattenChoice
+
+    unflattenChoice val = case val of
+        String "none" -> val
+        String "auto" -> val
+        String "required" -> val
+        _ -> unflattenToolValue val
+
+mapArrayValues :: (Value -> Value) -> Value -> Value
+mapArrayValues f (Aeson.Array arr) = Aeson.Array (Vector.map f arr)
+mapArrayValues _ other = other
+
+adjustKey
+    :: Key.Key
+    -> (Value -> Value)
+    -> KeyMap.KeyMap Value
+    -> KeyMap.KeyMap Value
+adjustKey key f obj =
+    case KeyMap.lookup key obj of
+        Nothing -> obj
+        Just v -> KeyMap.insert key (f v) obj
 
 -- | Output content from the model
 data OutputContent
@@ -254,7 +326,6 @@ data FunctionToolCall = FunctionToolCall
     , arguments :: Text
     , status :: Maybe Text
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON, ToJSON)
 
 -- | Function tool call output item
 data FunctionToolCallOutput = FunctionToolCallOutput
@@ -673,7 +744,19 @@ data ResponseObject = ResponseObject
     , user :: Maybe Text
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON, ToJSON)
+
+instance FromJSON ResponseObject where
+    parseJSON (Aeson.Object o) =
+        genericParseJSON aesonOptions (Aeson.Object (unflattenResponseToolFields o))
+    parseJSON other = genericParseJSON aesonOptions other
+
+instance ToJSON ResponseObject where
+    toJSON response@ResponseObject{ tools = mTools, tool_choice = mChoice } =
+        case genericToJSON aesonOptions response of
+            Aeson.Object o ->
+                Aeson.Object
+                    (flattenResponseToolFields mTools mChoice o)
+            other -> other
 
 -- | Request body for /v1/responses
 data CreateResponse = CreateResponse
@@ -693,10 +776,17 @@ data CreateResponse = CreateResponse
     } deriving stock (Generic, Show)
 
 instance FromJSON CreateResponse where
-    parseJSON = genericParseJSON aesonOptions
+    parseJSON (Aeson.Object o) =
+        genericParseJSON aesonOptions (Aeson.Object (unflattenResponseToolFields o))
+    parseJSON other = genericParseJSON aesonOptions other
 
 instance ToJSON CreateResponse where
-    toJSON = genericToJSON aesonOptions
+    toJSON request@CreateResponse{ tools = mTools, tool_choice = mChoice } =
+        case genericToJSON aesonOptions request of
+            Aeson.Object o ->
+                Aeson.Object
+                    (flattenResponseToolFields mTools mChoice o)
+            other -> other
 
 -- | Default CreateResponse
 _CreateResponse :: CreateResponse
