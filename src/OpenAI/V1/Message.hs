@@ -2,7 +2,6 @@
 module OpenAI.V1.Message
     ( -- * Main types
       Message(..)
-
       -- * Other types
     , ImageFile(..)
     , ImageURL(..)

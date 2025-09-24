@@ -1,56 +1,61 @@
-{-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BlockArguments, DuplicateRecordFields, NamedFieldPuns #-}
+{-# LANGUAGE OverloadedLists, OverloadedStrings, RecordWildCards   #-}
+{-# LANGUAGE ScopedTypeVariables                                   #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Main where
 
-import qualified Control.Concurrent as Concurrent
 import Control.Exception (SomeException, catch)
+import OpenAI.V1 (Methods(..))
+import OpenAI.V1.Audio.Speech (CreateSpeech(..), Voice(..), _CreateSpeech)
+import OpenAI.V1.Audio.Transcriptions (CreateTranscription(..))
+import OpenAI.V1.Audio.Translations (CreateTranslation(..))
+import OpenAI.V1.AutoOr (AutoOr(..))
+import OpenAI.V1.Batches (BatchObject(..), CreateBatch(..))
+import OpenAI.V1.Chat.Completions (CreateChatCompletion(..), Modality(..))
+import OpenAI.V1.Embeddings (CreateEmbeddings(..), EncodingFormat(..))
+import OpenAI.V1.Files (FileObject(..), Order(..), UploadFile(..))
+import OpenAI.V1.Images.Edits (CreateImageEdit(..))
+import OpenAI.V1.Images.Generations (CreateImage(..), Quality(..), Style(..))
+import OpenAI.V1.Images.Variations (CreateImageVariation(..))
+import OpenAI.V1.Message (Message(..))
+import OpenAI.V1.Moderations (CreateModeration(..))
+import OpenAI.V1.Threads.Messages (MessageObject(..), ModifyMessage(..))
+import OpenAI.V1.Tool (Tool(..), ToolChoice(..))
+import OpenAI.V1.ToolCall (ToolCall(..))
+import Prelude hiding (id)
+
+import OpenAI.V1.Assistants
+    (AssistantObject(..), CreateAssistant(..), ModifyAssistant(..))
+import OpenAI.V1.FineTuning.Jobs
+    (CreateFineTuningJob(..), Hyperparameters(..), JobObject(..))
+import OpenAI.V1.Threads
+    (ModifyThread(..), Thread(..), ThreadID(..), ThreadObject(..))
+import OpenAI.V1.Threads.Runs
+    (CreateRun(..), ModifyRun(..), RunID(..), RunObject(..), Status(..))
+import OpenAI.V1.Uploads
+    ( AddUploadPart(..)
+    , CompleteUpload(..)
+    , CreateUpload(..)
+    , PartObject(..)
+    , UploadObject(..)
+    )
+import OpenAI.V1.VectorStores
+    (CreateVectorStore(..), ModifyVectorStore(..), VectorStoreObject(..))
+import OpenAI.V1.VectorStores.FileBatches
+    (CreateVectorStoreFileBatch(..), VectorStoreFilesBatchObject(..))
+import OpenAI.V1.VectorStores.Files
+    (CreateVectorStoreFile(..), VectorStoreFileObject(..))
+
+import qualified Control.Concurrent as Concurrent
+import qualified Data.IORef as IORef
 import qualified Data.Text as Text
 import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
-import OpenAI.V1 (Methods (..))
 import qualified OpenAI.V1 as V1
-import qualified OpenAI.V1.Responses as Responses
-import OpenAI.V1.Assistants
-  ( AssistantObject (..),
-    CreateAssistant (..),
-    ModifyAssistant (..),
-  )
-import OpenAI.V1.Audio.Speech
-  ( CreateSpeech (..),
-    Voice (..),
-    _CreateSpeech,
-  )
-import OpenAI.V1.Audio.Transcriptions (CreateTranscription (..))
-import OpenAI.V1.Audio.Translations (CreateTranslation (..))
-import OpenAI.V1.AutoOr (AutoOr (..))
-import OpenAI.V1.Batches (BatchObject (..), CreateBatch (..))
-import OpenAI.V1.Chat.Completions
-  ( CreateChatCompletion (..),
-    Modality (..),
-  )
 import qualified OpenAI.V1.Chat.Completions as Completions
-import OpenAI.V1.Embeddings (CreateEmbeddings (..), EncodingFormat (..))
-import OpenAI.V1.Files (FileObject (..), Order (..), UploadFile (..))
 import qualified OpenAI.V1.Files as Files
-import OpenAI.V1.FineTuning.Jobs
-  ( CreateFineTuningJob (..),
-    Hyperparameters (..),
-    JobObject (..),
-  )
 import qualified OpenAI.V1.FineTuning.Jobs as Jobs
-import OpenAI.V1.Images.Edits (CreateImageEdit (..))
-import OpenAI.V1.Images.Generations
-  ( CreateImage (..),
-    Quality (..),
-    Style (..),
-  )
 import qualified OpenAI.V1.Images.ResponseFormat as ResponseFormat
 import OpenAI.V1.Images.Variations (CreateImageVariation (..))
 import OpenAI.V1.Message (Message (..))
@@ -73,35 +78,13 @@ import OpenAI.V1.Tool
     ( Tool (..)
     , ToolChoice (..)
     )
+import qualified OpenAI.V1.Responses as Responses
 import qualified OpenAI.V1.Tool as Tool
-import OpenAI.V1.ToolCall (ToolCall (..))
 import qualified OpenAI.V1.ToolCall as ToolCall
-import OpenAI.V1.Uploads
-  ( AddUploadPart (..),
-    CompleteUpload (..),
-    CreateUpload (..),
-    PartObject (..),
-    UploadObject (..),
-  )
-import OpenAI.V1.VectorStores
-  ( CreateVectorStore (..),
-    ModifyVectorStore (..),
-    VectorStoreObject (..),
-  )
-import OpenAI.V1.VectorStores.FileBatches
-  ( CreateVectorStoreFileBatch (..),
-    VectorStoreFilesBatchObject (..),
-  )
-import OpenAI.V1.VectorStores.Files
-  ( CreateVectorStoreFile (..),
-    VectorStoreFileObject (..),
-  )
 import qualified Servant.Client as Client
 import qualified System.Environment as Environment
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as HUnit
-import Prelude hiding (id)
-import qualified Data.IORef as IORef
 
 main :: IO ()
 main = do

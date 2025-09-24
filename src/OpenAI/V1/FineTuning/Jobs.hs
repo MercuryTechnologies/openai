@@ -7,7 +7,6 @@ module OpenAI.V1.FineTuning.Jobs
     , JobObject(..)
     , EventObject(..)
     , CheckpointObject(..)
-
       -- * Other types
     , AutoOr(..)
     , Hyperparameters(..)
@@ -16,7 +15,6 @@ module OpenAI.V1.FineTuning.Jobs
     , Status(..)
     , Level(..)
     , Metrics(..)
-
       -- * Servant
     , API
     ) where
@@ -25,8 +23,8 @@ import OpenAI.Prelude
 import OpenAI.V1.AutoOr
 import OpenAI.V1.Error
 import OpenAI.V1.Files (FileID)
-import OpenAI.V1.Models (Model)
 import OpenAI.V1.ListOf
+import OpenAI.V1.Models (Model)
 
 -- | Fine tuning job ID
 newtype FineTuningJobID = FineTuningJobID{ text :: Text }

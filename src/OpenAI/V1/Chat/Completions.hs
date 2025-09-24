@@ -28,7 +28,7 @@ module OpenAI.V1.Chat.Completions
     , FinishReason(..)
     , Token(..)
     , LogProbs(..)
-    -- * Servant
+      -- * Servant
     , API
     ) where
 

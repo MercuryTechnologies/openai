@@ -5,6 +5,7 @@ module OpenAI.V1.Audio
     ) where
 
 import OpenAI.Prelude
+
 import qualified OpenAI.V1.Audio.Speech as Speech
 import qualified OpenAI.V1.Audio.Transcriptions as Transcriptions
 import qualified OpenAI.V1.Audio.Translations as Translations

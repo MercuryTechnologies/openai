@@ -30,14 +30,13 @@ module OpenAI.V1.Responses
     , ResponseUsage(..)
     , InputTokensDetails(..)
     , OutputTokensDetails(..)
-
       -- * Servant
     , API
     ) where
 
-import OpenAI.Prelude hiding (Input(..))
 import Data.Aeson (Object)
 import qualified Data.Aeson as Aeson
+import OpenAI.Prelude hiding (Input(..))
 -- no TH; inline JSON instances for payloads
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)

@@ -2,7 +2,6 @@
 module OpenAI.V1.Usage
     ( -- * Main types
       Usage(..)
-
       -- * Other types
     , CompletionTokensDetails(..)
     , PromptTokensDetails(..)

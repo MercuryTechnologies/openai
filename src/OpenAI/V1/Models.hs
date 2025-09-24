@@ -3,7 +3,6 @@ module OpenAI.V1.Models
     ( -- * Main types
       Model(..)
     , ModelObject(..)
-
       -- * Servant
     , API
     ) where

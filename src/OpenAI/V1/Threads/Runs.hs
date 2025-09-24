@@ -11,7 +11,6 @@ module OpenAI.V1.Threads.Runs
     , SubmitToolOutputsToRun(..)
     , _SubmitToolOutputsToRun
     , RunObject(..)
-
       -- * Other types
     , TruncationStrategy(..)
     , SubmitToolOutputs(..)
@@ -19,7 +18,6 @@ module OpenAI.V1.Threads.Runs
     , IncompleteDetails(..)
     , ToolOutput(..)
     , Status(..)
-
       -- * Servant
     , API
     ) where
@@ -33,11 +31,10 @@ import OpenAI.V1.Message
 import OpenAI.V1.Models (Model)
 import OpenAI.V1.Order
 import OpenAI.V1.ResponseFormat
-import OpenAI.V1.Threads (Thread)
+import OpenAI.V1.Threads (Thread, ThreadID)
 import OpenAI.V1.Tool
 import OpenAI.V1.ToolCall
 import OpenAI.V1.ToolResources
-import OpenAI.V1.Threads (ThreadID)
 import OpenAI.V1.Usage
 
 -- | Run ID

@@ -6,8 +6,8 @@ module OpenAI.V1.Images
 
 import OpenAI.Prelude
 
-import qualified OpenAI.V1.Images.Generations as Generations
 import qualified OpenAI.V1.Images.Edits as Edits
+import qualified OpenAI.V1.Images.Generations as Generations
 import qualified OpenAI.V1.Images.Variations as Variations
 
 -- | Servant API

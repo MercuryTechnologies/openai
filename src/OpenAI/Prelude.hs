@@ -3,13 +3,11 @@ module OpenAI.Prelude
       aesonOptions
     , stripPrefix
     , labelModifier
-
       -- * Multipart Form Data
     , input
     , renderIntegral
     , renderRealFloat
     , getExtension
-
       -- * Re-exports
     , module Data.Aeson
     , module Data.ByteString.Lazy
@@ -43,9 +41,9 @@ import Web.HttpApiData (ToHttpApiData(..))
 
 import Data.Aeson
     ( FromJSON(..)
-    , ToJSON(..)
     , Options(..)
     , SumEncoding(..)
+    , ToJSON(..)
     , Value(..)
     , genericParseJSON
     , genericToJSON
@@ -73,8 +71,8 @@ import Servant.Multipart.API
     , Input(..)
     , MultipartData(..)
     , MultipartForm
-    , ToMultipart(..)
     , Tmp
+    , ToMultipart(..)
     )
 
 import qualified Data.Aeson as Aeson
@@ -83,8 +81,8 @@ import qualified Data.List as List
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Text.Lazy
 import qualified Data.Text.Lazy.Builder as Builder
-import qualified Data.Text.Lazy.Builder.RealFloat as RealFloat
 import qualified Data.Text.Lazy.Builder.Int as Int
+import qualified Data.Text.Lazy.Builder.RealFloat as RealFloat
 import qualified System.FilePath as FilePath
 
 dropTrailingUnderscore :: String -> String
