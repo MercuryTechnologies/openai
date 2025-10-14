@@ -1,3 +1,28 @@
+2.0.0:
+
+- **BREAKING CHANGE**: Renamed `Item_InputMessage` to `Item_Input_Message` in `OpenAI.V1.Responses` for consistency with new constructors
+
+  The `InputItem` data type in the Responses API has been updated to use a consistent naming scheme. If you are using the Responses API, you will need to update your code:
+
+  ```haskell
+  -- Before (v1.2.0):
+  Item_InputMessage { role = ..., content = ..., status = ... }
+
+  -- After (v2.0.0):
+  Item_Input_Message { role = ..., content = ..., status = ... }
+  ```
+
+- Add support for function tool calls in Responses API
+  - New `InputItem` constructors: `Item_Input_Function_Call`, `Item_Input_Function_Call_Output`, `Item_Input_Item_Reference`
+  - Add flattened tool JSON representation for Responses API compatibility
+  - Export status constants: `statusIncomplete`, `statusCompleted`
+  - Export tool choice constants: `toolChoiceNoneText`, `toolChoiceAutoText`, `toolChoiceRequiredText`
+
+- Code quality improvements:
+  - Optimize `isFunctionField` using `HashSet` for O(1) lookups
+  - Simplify `unflattenChoice` with guards
+  - Extract magic strings as named constants
+
 1.2.0:
 
 - [`/v1/responses`: Add support for Responses API](https://platform.openai.com/docs/api-reference/responses)
