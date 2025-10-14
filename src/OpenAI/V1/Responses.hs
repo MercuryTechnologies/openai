@@ -326,6 +326,7 @@ data FunctionToolCall = FunctionToolCall
     , arguments :: Text
     , status :: Maybe Text
     } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Function tool call output item
 data FunctionToolCallOutput = FunctionToolCallOutput

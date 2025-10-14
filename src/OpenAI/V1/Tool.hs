@@ -25,7 +25,7 @@ import OpenAI.Prelude
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as Key
 import qualified Data.Aeson.KeyMap as KeyMap
-import qualified Data.Set as Set
+import Data.List (partition)
 import qualified Data.Vector as V
 
 -- | The ranking options for the file search
@@ -93,37 +93,40 @@ parseResponsesToolChoiceValue (String "auto") = pure ToolChoiceAuto
 parseResponsesToolChoiceValue (String "required") = pure ToolChoiceRequired
 parseResponsesToolChoiceValue other = ToolChoiceTool <$> parseResponsesToolValue other
 
+keyFunction, keyType :: Key.Key
+keyFunction = Key.fromText "function"
+keyType = Key.fromText "type"
+
+functionFieldKeys :: [Key.Key]
+functionFieldKeys = Key.fromText <$> ["description", "name", "parameters", "strict"]
+
+isFunctionField :: Key.Key -> Bool
+isFunctionField key = key `elem` functionFieldKeys
+
+partitionFunctionFields
+    :: KeyMap.KeyMap Value
+    -> (KeyMap.KeyMap Value, KeyMap.KeyMap Value)
+partitionFunctionFields obj =
+    let (fnPairs, restPairs) = partition (isFunctionField . fst) (KeyMap.toList obj)
+    in (KeyMap.fromList fnPairs, KeyMap.fromList restPairs)
+
 flattenToolValue :: Value -> Value
-flattenToolValue (Aeson.Object o) =
-    case KeyMap.lookup (Key.fromText "function") o of
-        Just (Aeson.Object fn) ->
-            Aeson.Object (KeyMap.delete (Key.fromText "function") o <> fn)
-        _ -> Aeson.Object o
+flattenToolValue value@(Aeson.Object o) =
+    maybe value flattenFunction (KeyMap.lookup keyFunction o)
+  where
+    flattenFunction (Aeson.Object fnFields) =
+        Aeson.Object (KeyMap.delete keyFunction o <> fnFields)
+    flattenFunction _ = value
 flattenToolValue value = value
 
 unflattenToolValue :: Value -> Value
-unflattenToolValue (Aeson.Object o) =
-    case KeyMap.lookup (Key.fromText "type") o of
-        Just (String "function")
-            | KeyMap.member (Key.fromText "function") o -> Aeson.Object o
-            | otherwise ->
-                let (fnFields, rest) = splitFunctionFields o
-                    nested = KeyMap.insert (Key.fromText "function") (Aeson.Object fnFields) rest
-                in Aeson.Object nested
-        _ -> Aeson.Object o
+unflattenToolValue value@(Aeson.Object o)
+    | KeyMap.lookup keyType o == Just (String "function")
+    , not (KeyMap.member keyFunction o) =
+        let (fnFields, rest) = partitionFunctionFields o
+        in Aeson.Object (KeyMap.insert keyFunction (Aeson.Object fnFields) rest)
+    | otherwise = value
 unflattenToolValue value = value
-
-functionFieldKeys :: Set.Set Key.Key
-functionFieldKeys = Set.fromList (Key.fromText <$> ["description", "name", "parameters", "strict"])
-
-splitFunctionFields
-    :: KeyMap.KeyMap Value
-    -> (KeyMap.KeyMap Value, KeyMap.KeyMap Value)
-splitFunctionFields = KeyMap.foldrWithKey step (KeyMap.empty, KeyMap.empty)
-  where
-    step key value (fn, rest)
-        | key `Set.member` functionFieldKeys = (KeyMap.insert key value fn, rest)
-        | otherwise = (fn, KeyMap.insert key value rest)
 
 -- | Controls which (if any) tool is called by the model
 data ToolChoice
