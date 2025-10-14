@@ -42,9 +42,10 @@ data Result = Result
     { flagged :: Bool
     , categories :: Map Text Bool
     , category_scores :: Map Text Double
-    , category_applied_input_types :: Maybe (Map Text InputType)
+    , category_applied_input_types :: Maybe (Map Text [InputType])
     -- According to the OpenAPI spec the `category_applied_input_types`
     -- field is required but their actual implementation omits this field.
+    -- Note: Each category maps to a list of input types (e.g., ["text"], ["image"])
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON, ToJSON)
 
