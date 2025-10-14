@@ -30,6 +30,9 @@ module OpenAI.V1.Responses
     , ResponseUsage(..)
     , InputTokensDetails(..)
     , OutputTokensDetails(..)
+      -- * Constants
+    , statusIncomplete
+    , statusCompleted
       -- * Servant
     , API
     ) where
@@ -46,10 +49,18 @@ import qualified Data.Vector as Vector
 import OpenAI.V1.Tool
     ( Tool
     , ToolChoice
+    , toolChoiceAutoText
+    , toolChoiceNoneText
+    , toolChoiceRequiredText
     , toolChoiceToResponsesValue
     , toolToResponsesValue
     , unflattenToolValue
     )
+
+-- | Status constants for function call outputs
+statusIncomplete, statusCompleted :: Text
+statusIncomplete = "incomplete"
+statusCompleted = "completed"
 
 -- | Input for the Responses API: a list of input items
 newtype Input = Input (Vector InputItem)
@@ -159,11 +170,9 @@ unflattenResponseToolFields = adjustChoice . adjustTools
     adjustTools = adjustKey keyTools (mapArrayValues unflattenToolValue)
     adjustChoice = adjustKey keyToolChoice unflattenChoice
 
-    unflattenChoice val = case val of
-        String "none" -> val
-        String "auto" -> val
-        String "required" -> val
-        _ -> unflattenToolValue val
+    unflattenChoice (String s)
+        | s `elem` ([toolChoiceNoneText, toolChoiceAutoText, toolChoiceRequiredText] :: [Text]) = String s
+    unflattenChoice other = unflattenToolValue other
 
 mapArrayValues :: (Value -> Value) -> Value -> Value
 mapArrayValues f (Aeson.Array arr) = Aeson.Array (Vector.map f arr)

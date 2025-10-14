@@ -42,6 +42,7 @@ library
                       , servant-multipart-client
                       , text
                       , time
+                      , unordered-containers
                       , vector
     exposed-modules:    OpenAI.V1
                         OpenAI.V1.Assistants

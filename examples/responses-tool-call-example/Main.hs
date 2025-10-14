@@ -139,36 +139,30 @@ processFunctionCall
                 }
         argumentsBytes = Text.Encoding.encodeUtf8 argumentsText
 
-    case Aeson.eitherDecodeStrict' argumentsBytes of
-        Left err -> do
-            let payload = Aeson.object ["error" .= Text.pack err]
-                outputText = Text.Encoding.decodeUtf8 (LBS.toStrict (Aeson.encode payload))
-                outputItem =
-                    Responses.Item_Input_Function_Call_Output
-                        { Responses.id = Nothing
-                        , Responses.call_id = callId
-                        , Responses.output = outputText
-                        , Responses.status = Just "incomplete"
-                        }
-            pure (callInput, outputItem)
+        makeOutput status payload =
+            Responses.Item_Input_Function_Call_Output
+                { Responses.id = Nothing
+                , Responses.call_id = callId
+                , Responses.output = encodePayload payload
+                , Responses.status = Just status
+                }
 
+        encodePayload = Text.Encoding.decodeUtf8 . LBS.toStrict . Aeson.encode
+
+    result <- case Aeson.eitherDecodeStrict' argumentsBytes of
+        Left err ->
+            pure $ makeOutput Responses.statusIncomplete (Aeson.object ["error" .= Text.pack err])
         Right HoroscopeArgs{ sign } -> do
             let horoscope = getHoroscope sign
-                payload = Aeson.object ["horoscope" .= horoscope]
-                outputText = Text.Encoding.decodeUtf8 (LBS.toStrict (Aeson.encode payload))
-                outputItem =
-                    Responses.Item_Input_Function_Call_Output
-                        { Responses.id = Nothing
-                        , Responses.call_id = callId
-                        , Responses.output = outputText
-                        , Responses.status = Just "completed"
-                        }
-            pure (callInput, outputItem)
+            pure $ makeOutput Responses.statusCompleted (Aeson.object ["horoscope" .= horoscope])
+
+    pure (callInput, result)
 processFunctionCall other =
     error $ "Unexpected output item: " <> show other
 
 collectText :: Responses.ResponseObject -> [Text]
-collectText Responses.ResponseObject{ Responses.output } = do
-    Responses.Item_OutputMessage{ Responses.message_content } <- toList output
-    Responses.Output_Text{ Responses.text } <- toList message_content
-    pure text
+collectText Responses.ResponseObject{ Responses.output } =
+    [ text
+    | Responses.Item_OutputMessage{ Responses.message_content } <- toList output
+    , Responses.Output_Text{ Responses.text } <- toList message_content
+    ]

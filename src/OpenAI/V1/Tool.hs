@@ -7,6 +7,10 @@ module OpenAI.V1.Tool
     , Function(..)
     , ToolChoice(..)
     , CodeInterpreterContainer(..)
+      -- * Constants
+    , toolChoiceNoneText
+    , toolChoiceAutoText
+    , toolChoiceRequiredText
       -- * Helpers
     , codeInterpreter
     , codeInterpreterAuto
@@ -25,8 +29,16 @@ import OpenAI.Prelude
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as Key
 import qualified Data.Aeson.KeyMap as KeyMap
+import qualified Data.HashSet as HashSet
+import Data.HashSet (HashSet)
 import Data.List (partition)
 import qualified Data.Vector as V
+
+-- | Tool choice string constants
+toolChoiceNoneText, toolChoiceAutoText, toolChoiceRequiredText :: Text
+toolChoiceNoneText = "none"
+toolChoiceAutoText = "auto"
+toolChoiceRequiredText = "required"
 
 -- | The ranking options for the file search
 data RankingOptions = RankingOptions
@@ -82,26 +94,27 @@ parseResponsesToolValue :: Value -> Parser Tool
 parseResponsesToolValue = parseJSON . unflattenToolValue
 
 toolChoiceToResponsesValue :: ToolChoice -> Value
-toolChoiceToResponsesValue ToolChoiceNone = "none"
-toolChoiceToResponsesValue ToolChoiceAuto = "auto"
-toolChoiceToResponsesValue ToolChoiceRequired = "required"
+toolChoiceToResponsesValue ToolChoiceNone = String toolChoiceNoneText
+toolChoiceToResponsesValue ToolChoiceAuto = String toolChoiceAutoText
+toolChoiceToResponsesValue ToolChoiceRequired = String toolChoiceRequiredText
 toolChoiceToResponsesValue (ToolChoiceTool tool) = toolToResponsesValue tool
 
 parseResponsesToolChoiceValue :: Value -> Parser ToolChoice
-parseResponsesToolChoiceValue (String "none") = pure ToolChoiceNone
-parseResponsesToolChoiceValue (String "auto") = pure ToolChoiceAuto
-parseResponsesToolChoiceValue (String "required") = pure ToolChoiceRequired
+parseResponsesToolChoiceValue (String s)
+    | s == toolChoiceNoneText = pure ToolChoiceNone
+    | s == toolChoiceAutoText = pure ToolChoiceAuto
+    | s == toolChoiceRequiredText = pure ToolChoiceRequired
 parseResponsesToolChoiceValue other = ToolChoiceTool <$> parseResponsesToolValue other
 
 keyFunction, keyType :: Key.Key
 keyFunction = Key.fromText "function"
 keyType = Key.fromText "type"
 
-functionFieldKeys :: [Key.Key]
-functionFieldKeys = Key.fromText <$> ["description", "name", "parameters", "strict"]
+functionFieldKeys :: HashSet Key.Key
+functionFieldKeys = HashSet.fromList $ Key.fromText <$> ["description", "name", "parameters", "strict"]
 
 isFunctionField :: Key.Key -> Bool
-isFunctionField key = key `elem` functionFieldKeys
+isFunctionField = (`HashSet.member` functionFieldKeys)
 
 partitionFunctionFields
     :: KeyMap.KeyMap Value
