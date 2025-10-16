@@ -5,6 +5,8 @@
 
 module Main where
 
+import Data.Aeson ((.=))
+import qualified Data.Aeson as Aeson
 import Control.Exception (SomeException, catch)
 import OpenAI.V1 (Methods(..))
 import OpenAI.V1.Audio.Speech (CreateSpeech(..), Voice(..), _CreateSpeech)
@@ -975,6 +977,61 @@ main = do
 
           return ()
 
+  let responsesReasoningInputSerializationTest =
+        HUnit.testCase "Responses - reasoning input serialization" do
+          let reasoningItem =
+                Responses.Item_Input_Reasoning
+                  { Responses.reasoning_id = "reasoning_123"
+                  , Responses.reasoning_encrypted_content = Just "ciphertext"
+                  , Responses.reasoning_summary =
+                      Just
+                        [ Responses.Summary_Text
+                            { Responses.text = "High-level plan" }
+                        ]
+                  , Responses.reasoning_content =
+                      Just
+                        [ Responses.Reasoning_Text
+                            { Responses.text = "Step 1: inspect tool output." }
+                        ]
+                  , Responses.reasoning_status = Just Responses.statusCompleted
+                  }
+              encoded = Aeson.encode reasoningItem
+              expected :: Aeson.Value
+              expected =
+                Aeson.object
+                  [ "type" .= ("reasoning" :: Text.Text)
+                  , "id" .= ("reasoning_123" :: Text.Text)
+                  , "encrypted_content" .= ("ciphertext" :: Text.Text)
+                  , "summary"
+                      .= ( [ Aeson.object
+                                [ "type" .= ("summary_text" :: Text.Text)
+                                , "text" .= ("High-level plan" :: Text.Text)
+                                ]
+                            ]
+                         :: [Aeson.Value]
+                         )
+                  , "content"
+                      .= ( [ Aeson.object
+                                [ "type" .= ("reasoning_text" :: Text.Text)
+                                , "text" .= ("Step 1: inspect tool output." :: Text.Text)
+                                ]
+                            ]
+                         :: [Aeson.Value]
+                         )
+                  , "status" .= (Responses.statusCompleted :: Text.Text)
+                  ]
+          case Aeson.decode encoded of
+            Nothing ->
+              HUnit.assertFailure "Failed to decode encoded reasoning input item"
+            Just decodedValue ->
+              HUnit.assertEqual "Encoded JSON mismatch" expected decodedValue
+
+          case Aeson.fromJSON expected of
+            Aeson.Error err ->
+              HUnit.assertFailure ("Round-trip decode failed: " <> err)
+            Aeson.Success decoded ->
+              HUnit.assertEqual "Round-trip mismatch" reasoningItem decoded
+
   let tests =
           speechTests
             <> [ transcriptionTest,
@@ -994,6 +1051,7 @@ main = do
                createImageVariationMaximalTest,
                createModerationTest,
                responsesMinimalTest,
+               responsesReasoningInputSerializationTest,
                responsesStreamingHaikuTest,
                responsesCodeInterpreterStreamingTest,
                assistantsTest,
