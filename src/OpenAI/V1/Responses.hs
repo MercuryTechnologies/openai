@@ -74,7 +74,7 @@ instance FromJSON Input where
 
 -- | Role of an input message
 data InputRole = User | System | Developer
-    deriving stock (Generic, Show)
+    deriving stock (Eq, Generic, Show)
 
 instance FromJSON InputRole where
     parseJSON = genericParseJSON aesonOptions
@@ -88,7 +88,7 @@ data InputContent
     | Input_Image { image_url :: Maybe Text, file_id :: Maybe Text, detail :: Maybe Text }
     | Input_File { file_id :: Maybe Text, filename :: Maybe Text, file_url :: Maybe Text, file_data :: Maybe Text }
     | Input_Audio { input_audio :: Object }
-    deriving stock (Generic, Show)
+    deriving stock (Eq, Generic, Show)
 
 inputContentOptions :: Options
 inputContentOptions =
@@ -125,10 +125,17 @@ data InputItem
         , output :: Text
         , status :: Maybe Text
         }
+    | Item_Input_Reasoning
+        { reasoning_id :: Text
+        , reasoning_encrypted_content :: Maybe Text
+        , reasoning_summary :: Maybe (Vector SummaryPart)
+        , reasoning_content :: Maybe (Vector ReasoningText)
+        , reasoning_status :: Maybe Text
+        }
     | Item_Input_Item_Reference
         { id :: Maybe Text
         }
-    deriving stock (Generic, Show)
+    deriving stock (Eq, Generic, Show)
 
 inputItemOptions :: Options
 inputItemOptions =
@@ -136,6 +143,7 @@ inputItemOptions =
         { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
         , tagSingleConstructors = True
         , constructorTagModifier = stripPrefix "Item_Input_"
+        , fieldLabelModifier = stripPrefix "reasoning_"
         }
 
 instance FromJSON InputItem where
@@ -491,7 +499,7 @@ instance ToJSON Annotation where
 
 -- | Reasoning summary part
 data SummaryPart = Summary_Text{ text :: Text }
-    deriving stock (Generic, Show)
+    deriving stock (Eq, Generic, Show)
 
 summaryPartOptions :: Options
 summaryPartOptions = aesonOptions
@@ -507,7 +515,7 @@ instance ToJSON SummaryPart where
 
 -- | Reasoning text part
 data ReasoningText = Reasoning_Text{ text :: Text }
-    deriving stock (Generic, Show)
+    deriving stock (Eq, Generic, Show)
 
 reasoningTextOptions :: Options
 reasoningTextOptions = aesonOptions
@@ -528,7 +536,7 @@ data ReasoningItem = ReasoningItem
     , summary :: Maybe (Vector SummaryPart)
     , content :: Maybe (Vector ReasoningText)
     , status :: Maybe Text
-    } deriving stock (Generic, Show)
+    } deriving stock (Eq, Generic, Show)
 
 instance FromJSON ReasoningItem where
     parseJSON = genericParseJSON aesonOptions
