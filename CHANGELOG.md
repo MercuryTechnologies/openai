@@ -1,3 +1,7 @@
+2.1.0:
+
+- Add `Item_Input_Reasoning` constructor and JSON round-trip test so reasoning traces from tool calls can be echoed back via the Responses API.
+
 2.0.0:
 
 - **BREAKING CHANGE**: Renamed `Item_InputMessage` to `Item_Input_Message` in `OpenAI.V1.Responses` for consistency with new constructors
