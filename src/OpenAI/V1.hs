@@ -24,7 +24,7 @@
 --
 --     clientEnv <- `OpenAI.V1.getClientEnv` \"https://api.openai.com\"
 --
---     let `OpenAI.V1.Methods`{ createChatCompletion } = `OpenAI.V1.makeMethods` clientEnv (Text.`Data.Text.pack` key)
+--     let `OpenAI.V1.Methods`{ createChatCompletion } = `OpenAI.V1.makeMethods` clientEnv (Text.`Data.Text.pack` key) Nothing Nothing
 --
 --     text <- Text.IO.`Data.Text.IO.getLine`
 --
