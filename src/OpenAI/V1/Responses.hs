@@ -1,4 +1,4 @@
--- | /v1/responses
+-- | \/v1/responses
 --
 -- Streaming is not implemented here; this covers JSON responses only.
 module OpenAI.V1.Responses
@@ -544,7 +544,7 @@ instance FromJSON ReasoningItem where
 instance ToJSON ReasoningItem where
     toJSON = genericToJSON aesonOptions
 
--- | Streaming events for /v1/responses
+-- | Streaming events for \/v1/responses
 data ResponseStreamEvent
     = ResponseCreatedEvent
         { response :: ResponseObject
@@ -776,7 +776,7 @@ instance ToJSON ResponseObject where
                     (flattenResponseToolFields mTools mChoice o)
             other -> other
 
--- | Request body for /v1/responses
+-- | Request body for \/v1/responses
 data CreateResponse = CreateResponse
     { model :: Model
     , input :: Maybe Input
@@ -823,7 +823,7 @@ _CreateResponse = CreateResponse
     , tool_choice = Nothing
     }
 
--- | Servant API for /v1/responses
+-- | Servant API for \/v1/responses
 type API =
         "responses"
     :>  (         ReqBody '[JSON] CreateResponse
