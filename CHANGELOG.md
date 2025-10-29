@@ -1,3 +1,10 @@
+2.3.0:
+
+- Expand `/v1/responses` coverage:
+  - Add first-class types for text/output configuration, prompts, conversations, and truncation (`OpenAI.V1.Responses`).
+  - Extend `ResponseObject` to expose conversation metadata, background/max limits, structured text config, tool resources, and cache/safety identifiers.
+  - Surface the same optional knobs on `CreateResponse`/_`CreateResponse` defaults while preserving flattened tool serialization.
+
 2.2.0:
 
 - Add structured reasoning support to `OpenAI.V1.Responses`, including the `Reasoning`, `ReasoningEffort`, and `ReasoningSummary` types, plus the `ServiceTier` alias.

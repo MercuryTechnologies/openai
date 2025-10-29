@@ -5,6 +5,8 @@ module OpenAI.V1.Responses
     ( -- * Main types
       CreateResponse(..)
     , _CreateResponse
+    , Conversation(..)
+    , ConversationParam(..)
     , Input(..)
     , InputItem(..)
     , InputRole(..)
@@ -29,6 +31,11 @@ module OpenAI.V1.Responses
     , SummaryPart(..)
     , ReasoningText(..)
     , ReasoningEffort(..)
+    , ResponseTextParam(..)
+    , TextResponseFormatConfiguration(..)
+    , Verbosity(..)
+    , Prompt(..)
+    , Truncation(..)
     , ServiceTier
     , ResponseStreamEvent(..)
     , ResponseObject(..)
@@ -51,7 +58,9 @@ import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
 import qualified Data.Aeson.Key as Key
 import qualified Data.Aeson.KeyMap as KeyMap
+import qualified Data.Text as Text
 import qualified Data.Vector as Vector
+import OpenAI.V1.ResponseFormat (JSONSchema)
 import OpenAI.V1.Tool
     ( Tool
     , ToolChoice
@@ -62,6 +71,7 @@ import OpenAI.V1.Tool
     , toolToResponsesValue
     , unflattenToolValue
     )
+import OpenAI.V1.ToolResources (ToolResources)
 
 -- | Status constants for function call outputs
 statusIncomplete, statusCompleted :: Text
@@ -142,6 +152,110 @@ _Reasoning =
         , summary = Nothing
         , generate_summary = Nothing
         }
+
+-- | Verbosity options for text responses
+data Verbosity
+    = Verbosity_Low
+    | Verbosity_Medium
+    | Verbosity_High
+    deriving stock (Eq, Generic, Show)
+
+verbosityOptions :: Options
+verbosityOptions =
+    aesonOptions
+        { constructorTagModifier = stripPrefix "Verbosity_" }
+
+instance FromJSON Verbosity where
+    parseJSON = genericParseJSON verbosityOptions
+
+instance ToJSON Verbosity where
+    toJSON = genericToJSON verbosityOptions
+
+-- | Configuration options for text responses (structured outputs, verbosity, etc.)
+data TextResponseFormatConfiguration
+    = TextResponseFormat_Text
+    | TextResponseFormat_JsonObject
+    | TextResponseFormat_JsonSchema JSONSchema
+    deriving stock (Eq, Generic, Show)
+
+instance FromJSON TextResponseFormatConfiguration where
+    parseJSON = Aeson.withObject "TextResponseFormatConfiguration" $ \o -> do
+        typ <- o Aeson..: "type"
+        case typ :: Text of
+            "text" -> pure TextResponseFormat_Text
+            "json_object" -> pure TextResponseFormat_JsonObject
+            "json_schema" ->
+                TextResponseFormat_JsonSchema
+                    <$> parseJSON (Aeson.Object (KeyMap.delete (Key.fromText "type") o))
+            other -> fail ("Unexpected text response format: " <> Text.unpack other)
+
+instance ToJSON TextResponseFormatConfiguration where
+    toJSON TextResponseFormat_Text =
+        Aeson.object [ "type" Aeson..= ("text" :: Text) ]
+    toJSON TextResponseFormat_JsonObject =
+        Aeson.object [ "type" Aeson..= ("json_object" :: Text) ]
+    toJSON (TextResponseFormat_JsonSchema schema) =
+        case toJSON schema of
+            Aeson.Object obj ->
+                Aeson.Object
+                    (KeyMap.insert (Key.fromText "type") (String "json_schema") obj)
+            other -> other
+
+-- | Text-specific response configuration block
+data ResponseTextParam = ResponseTextParam
+    { format :: Maybe TextResponseFormatConfiguration
+    , verbosity :: Maybe Verbosity
+    } deriving stock (Eq, Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Prompt template reference
+data Prompt = Prompt
+    { id :: Text
+    , version :: Maybe Text
+    , variables :: Maybe Value
+    } deriving stock (Eq, Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Conversation reference supplied when creating responses
+data ConversationParam
+    = ConversationParam_ID Text
+    | ConversationParam_Object { id :: Text }
+    deriving stock (Eq, Generic, Show)
+
+instance FromJSON ConversationParam where
+    parseJSON value =
+        case value of
+            Aeson.String t -> pure (ConversationParam_ID t)
+            Aeson.Object o -> ConversationParam_Object <$> o Aeson..: "id"
+            _ -> fail "ConversationParam must be a string ID or object with an id field"
+
+instance ToJSON ConversationParam where
+    toJSON (ConversationParam_ID t) = toJSON t
+    toJSON ConversationParam_Object{ id = conversationId } =
+        Aeson.object [ "id" Aeson..= conversationId ]
+
+-- | Conversation metadata returned by the API
+newtype Conversation = Conversation
+    { id :: Text
+    } deriving stock (Generic, Show)
+      deriving newtype (FromJSON, ToJSON)
+
+-- | Truncation strategy controls for responses
+data Truncation
+    = Truncation_Auto
+    | Truncation_Disabled
+    deriving stock (Eq, Generic, Show)
+
+truncationOptions :: Options
+truncationOptions =
+    aesonOptions
+        { constructorTagModifier = stripPrefix "Truncation_" }
+
+instance FromJSON Truncation where
+    parseJSON = genericParseJSON truncationOptions
+
+instance ToJSON Truncation where
+    toJSON = genericToJSON truncationOptions
 
 -- | Input for the Responses API: a list of input items
 newtype Input = Input (Vector InputItem)
@@ -830,18 +944,29 @@ data ResponseObject = ResponseObject
     , instructions :: Maybe Value
     , model :: Model
     , output :: Vector OutputItem
+    , output_text :: Maybe Text
     , parallel_tool_calls :: Bool
+    , conversation :: Maybe Conversation
     , previous_response_id :: Maybe Text
     , reasoning :: Maybe Reasoning
+    , background :: Maybe Bool
+    , max_output_tokens :: Maybe Natural
+    , max_tool_calls :: Maybe Natural
+    , text :: Maybe ResponseTextParam
+    , prompt :: Maybe Prompt
     , service_tier :: Maybe ServiceTier
+    , tool_resources :: Maybe ToolResources
     , store :: Maybe Bool
     , temperature :: Maybe Double
+    , top_logprobs :: Maybe Word
     , tool_choice :: Maybe ToolChoice
     , tools :: Maybe (Vector Tool)
     , top_p :: Maybe Double
-    , truncation :: Maybe Text
+    , truncation :: Maybe Truncation
     , usage :: Maybe ResponseUsage
     , user :: Maybe Text
+    , safety_identifier :: Maybe Text
+    , prompt_cache_key :: Maybe Text
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
 
@@ -862,19 +987,32 @@ instance ToJSON ResponseObject where
 data CreateResponse = CreateResponse
     { model :: Model
     , input :: Maybe Input
+    , previous_response_id :: Maybe Text
+    , conversation :: Maybe ConversationParam
     , include :: Maybe (Vector Text)
     , reasoning :: Maybe Reasoning
+    , text :: Maybe ResponseTextParam
     , service_tier :: Maybe (AutoOr ServiceTier)
+    , background :: Maybe Bool
+    , max_output_tokens :: Maybe Natural
+    , max_tool_calls :: Maybe Natural
     , parallel_tool_calls :: Maybe Bool
+    , tool_resources :: Maybe ToolResources
     , store :: Maybe Bool
     , instructions :: Maybe Text
     , stream :: Maybe Bool
     , stream_options :: Maybe Value
     , metadata :: Maybe (Map Text Text)
+    , top_logprobs :: Maybe Word
     , temperature :: Maybe Double
     , top_p :: Maybe Double
+    , prompt_cache_key :: Maybe Text
+    , safety_identifier :: Maybe Text
+    , user :: Maybe Text
+    , prompt :: Maybe Prompt
     , tools :: Maybe (Vector Tool)
     , tool_choice :: Maybe ToolChoice
+    , truncation :: Maybe Truncation
     } deriving stock (Generic, Show)
 
 instance FromJSON CreateResponse where
@@ -894,19 +1032,32 @@ instance ToJSON CreateResponse where
 _CreateResponse :: CreateResponse
 _CreateResponse = CreateResponse
     { input = Nothing
+    , previous_response_id = Nothing
+    , conversation = Nothing
     , include = Nothing
     , reasoning = Nothing
+    , text = Nothing
     , service_tier = Nothing
+    , background = Nothing
+    , max_output_tokens = Nothing
+    , max_tool_calls = Nothing
     , parallel_tool_calls = Nothing
+    , tool_resources = Nothing
     , store = Nothing
     , instructions = Nothing
     , stream = Nothing
     , stream_options = Nothing
     , metadata = Nothing
+    , top_logprobs = Nothing
     , temperature = Nothing
     , top_p = Nothing
+    , prompt_cache_key = Nothing
+    , safety_identifier = Nothing
+    , user = Nothing
+    , prompt = Nothing
     , tools = Nothing
     , tool_choice = Nothing
+    , truncation = Nothing
     }
 
 -- | Servant API for \/v1/responses

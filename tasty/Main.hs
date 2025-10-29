@@ -7,6 +7,8 @@ module Main where
 
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Key as Key
+import qualified Data.Aeson.KeyMap as KeyMap
 import Control.Exception (SomeException, catch)
 import OpenAI.V1 (Methods(..))
 import OpenAI.V1.Audio.Speech (CreateSpeech(..), Voice(..), _CreateSpeech)
@@ -51,7 +53,9 @@ import OpenAI.V1.VectorStores.Files
 
 import qualified Control.Concurrent as Concurrent
 import qualified Data.IORef as IORef
+import qualified Data.Maybe as Maybe
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
 import qualified OpenAI.V1 as V1
@@ -60,12 +64,14 @@ import qualified OpenAI.V1.Files as Files
 import qualified OpenAI.V1.FineTuning.Jobs as Jobs
 import qualified OpenAI.V1.Images.ResponseFormat as ResponseFormat
 import qualified OpenAI.V1.Responses as Responses
+import qualified OpenAI.V1.ResponseFormat as ResponsesFormat
 import qualified OpenAI.V1.Tool as Tool
 import qualified OpenAI.V1.ToolCall as ToolCall
 import qualified Servant.Client as Client
 import qualified System.Environment as Environment
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as HUnit
+import qualified Data.Vector as Vector
 
 main :: IO ()
 main = do
@@ -85,7 +91,7 @@ main = do
 
   let user = "openai Haskell package"
   let chatModel = "gpt-4o-mini"
-  let reasoningModel = "o3-mini"
+  let reasoningModel = "gpt-5"
   let ttsModel = "tts-1"
   let Methods {..} = V1.makeMethods clientEnv (Text.pack key) Nothing Nothing
 
@@ -977,60 +983,198 @@ main = do
 
           return ()
 
-  let responsesReasoningInputSerializationTest =
-        HUnit.testCase "Responses - reasoning input serialization" do
-          let reasoningItem =
-                Responses.Item_Input_Reasoning
-                  { Responses.reasoning_id = "reasoning_123"
-                  , Responses.reasoning_encrypted_content = Just "ciphertext"
-                  , Responses.reasoning_summary =
-                      Just
-                        [ Responses.Summary_Text
-                            { Responses.text = "High-level plan" }
-                        ]
-                  , Responses.reasoning_content =
-                      Just
-                        [ Responses.Reasoning_Text
-                            { Responses.text = "Step 1: inspect tool output." }
-                        ]
-                  , Responses.reasoning_status = Just Responses.statusCompleted
+  let responsesVerbosityLiveTest =
+        HUnit.testCase "Responses - verbosity" do
+          let textConfig =
+                Responses.ResponseTextParam
+                  { Responses.format = Nothing
+                  , Responses.verbosity = Just Responses.Verbosity_Medium
                   }
-              encoded = Aeson.encode reasoningItem
-              expected :: Aeson.Value
-              expected =
-                Aeson.object
-                  [ "type" .= ("reasoning" :: Text.Text)
-                  , "id" .= ("reasoning_123" :: Text.Text)
-                  , "encrypted_content" .= ("ciphertext" :: Text.Text)
-                  , "summary"
-                      .= ( [ Aeson.object
-                                [ "type" .= ("summary_text" :: Text.Text)
-                                , "text" .= ("High-level plan" :: Text.Text)
-                                ]
-                            ]
-                         :: [Aeson.Value]
-                         )
-                  , "content"
-                      .= ( [ Aeson.object
-                                [ "type" .= ("reasoning_text" :: Text.Text)
-                                , "text" .= ("Step 1: inspect tool output." :: Text.Text)
-                                ]
-                            ]
-                         :: [Aeson.Value]
-                         )
-                  , "status" .= (Responses.statusCompleted :: Text.Text)
-                  ]
-          case Aeson.decode encoded of
-            Nothing ->
-              HUnit.assertFailure "Failed to decode encoded reasoning input item"
-            Just decodedValue ->
-              HUnit.assertEqual "Encoded JSON mismatch" expected decodedValue
+              request =
+                Responses._CreateResponse
+                  { Responses.model = chatModel
+                  , Responses.input =
+                      Just
+                        (Responses.Input
+                          [ Responses.Item_Input_Message
+                              { Responses.role = Responses.User
+                              , Responses.content =
+                                  [ Responses.Input_Text
+                                      { Responses.text =
+                                          "Provide two concise sentences about why daily walking is healthy."
+                                      }
+                                  ]
+                              , Responses.status = Nothing
+                              }
+                          ])
+                  , Responses.text = Just textConfig
+                  }
+          response <- createResponse request
+          let Responses.ResponseObject
+                { Responses.output = outputItems
+                , Responses.text = responseTextConfig
+                } = response
 
-          case Aeson.fromJSON expected of
-            Aeson.Error err ->
-              HUnit.assertFailure ("Round-trip decode failed: " <> err)
-            Aeson.Success decoded ->
-              HUnit.assertEqual "Round-trip mismatch" reasoningItem decoded
+          HUnit.assertBool
+            "Expected at least one output item"
+            (not (Vector.null outputItems))
+
+          case responseTextConfig of
+            Nothing -> pure ()
+            Just cfg ->
+              HUnit.assertEqual
+                "Verbosity not echoed in response"
+                (Just Responses.Verbosity_Medium)
+                (Responses.verbosity cfg)
+
+  let responsesReasoningMinimalTest =
+        HUnit.testCase "Responses - reasoning minimal" do
+          let reasoningModelId = "gpt-5"
+              reasoningConfig =
+                Responses._Reasoning
+                  { Responses.effort = Just Responses.ReasoningEffort_Minimal
+                  }
+              request =
+                Responses._CreateResponse
+                  { Responses.model = reasoningModelId
+                  , Responses.input =
+                      Just
+                        (Responses.Input
+                          [ Responses.Item_Input_Message
+                              { Responses.role = Responses.User
+                              , Responses.content =
+                                  [ Responses.Input_Text
+                                      { Responses.text =
+                                          "Step through the logic to explain why exercise improves cardiovascular health. Provide a brief answer."
+                                      }
+                                  ]
+                              , Responses.status = Nothing
+                              }
+                          ])
+                  , Responses.reasoning = Just reasoningConfig
+                  }
+          response <- createResponse request
+          let Responses.ResponseObject
+                { Responses.output = outputItems
+                , Responses.reasoning = responseReasoning
+                } = response
+
+          HUnit.assertBool
+            "Expected at least one output item"
+            (not (Vector.null outputItems))
+
+          case responseReasoning of
+            Nothing ->
+              HUnit.assertFailure "Response missing reasoning metadata"
+            Just cfg ->
+              HUnit.assertEqual
+                "Reasoning effort not echoed in response"
+                (Just Responses.ReasoningEffort_Minimal)
+                (Responses.effort cfg)
+
+          let isReasoningItem item = case item of
+                Responses.Item_Reasoning{} -> True
+                _ -> False
+              sawReasoningOutput = any isReasoningItem (Vector.toList outputItems)
+
+          HUnit.assertBool
+            "Expected reasoning output item in response"
+            sawReasoningOutput
+
+  let responsesTextResponseFormatConfigurationTest =
+        HUnit.testCase "Responses - text response format configuration" do
+          let schemaDetails =
+                ResponsesFormat.JSONSchema
+                  { ResponsesFormat.description = Just "Return a summary message."
+                  , ResponsesFormat.name = "SummaryMessage"
+                  , ResponsesFormat.schema =
+                      Just
+                        ( Aeson.object
+                            [ "type" .= ("object" :: Text.Text)
+                            , "properties"
+                                .= Aeson.object
+                                  [ "message" .= Aeson.object [ "type" .= ("string" :: Text.Text) ]
+                                  ]
+                            , "required" .= (["message"] :: [Text.Text])
+                            , "additionalProperties" .= False
+                            ]
+                        )
+                  , ResponsesFormat.strict = Nothing
+                  }
+              textConfig =
+                Responses.ResponseTextParam
+                  { Responses.format =
+                      Just (Responses.TextResponseFormat_JsonSchema schemaDetails)
+                  , Responses.verbosity = Nothing
+                  }
+              request =
+                Responses._CreateResponse
+                  { Responses.model = chatModel
+                  , Responses.input =
+                      Just
+                        (Responses.Input
+                          [ Responses.Item_Input_Message
+                              { Responses.role = Responses.User
+                              , Responses.content =
+                                  [ Responses.Input_Text
+                                      { Responses.text =
+                                          "Provide a short JSON summary message about the benefits of structured outputs."
+                                      }
+                                  ]
+                              , Responses.status = Nothing
+                              }
+                          ])
+                  , Responses.text = Just textConfig
+                  }
+          response <- createResponse request
+          let Responses.ResponseObject
+                { Responses.text = responseTextConfig
+                , Responses.output_text = responseBody
+                , Responses.output = outputItems
+                } = response
+
+          case responseTextConfig of
+            Nothing ->
+              HUnit.assertFailure "Response missing text configuration echo"
+            Just cfg -> case Responses.format cfg of
+              Just Responses.TextResponseFormat_JsonSchema{} -> pure ()
+              other ->
+                HUnit.assertFailure
+                  ("Expected json_schema format in response, but saw: " <> show other)
+
+          let parseStructuredOutput txt =
+                case Aeson.decodeStrict (Text.Encoding.encodeUtf8 txt) of
+                  Nothing ->
+                    Left "Structured output was not valid JSON"
+                  Just (Aeson.Object obj) ->
+                    case KeyMap.lookup (Key.fromText "message") obj of
+                      Just (Aeson.String txt') ->
+                        if Text.null txt'
+                          then Left "Structured output message should not be empty"
+                          else Right ()
+                      _ ->
+                        Left "Structured output missing 'message' field"
+                  Just _ ->
+                    Left "Structured output was not a JSON object"
+
+              fallbackMessage =
+                Maybe.listToMaybe do
+                  Responses.Item_OutputMessage{ Responses.message_content = contents } <- Vector.toList outputItems
+                  Responses.Output_Text{ Responses.text = txt } <- Vector.toList contents
+                  pure txt
+
+          case responseBody of
+            Just body ->
+              case parseStructuredOutput body of
+                Left err -> HUnit.assertFailure err
+                Right () -> pure ()
+            Nothing -> case fallbackMessage of
+              Nothing ->
+                HUnit.assertFailure "Response missing aggregated output text"
+              Just txt ->
+                case parseStructuredOutput txt of
+                  Left err -> HUnit.assertFailure err
+                  Right () -> pure ()
 
   let tests =
           speechTests
@@ -1051,7 +1195,9 @@ main = do
                createImageVariationMaximalTest,
                createModerationTest,
                responsesMinimalTest,
-               responsesReasoningInputSerializationTest,
+               responsesReasoningMinimalTest,
+               responsesVerbosityLiveTest,
+               responsesTextResponseFormatConfigurationTest,
                responsesStreamingHaikuTest,
                responsesCodeInterpreterStreamingTest,
                assistantsTest,

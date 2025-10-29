@@ -12,7 +12,7 @@ data ResponseFormat
     = ResponseFormat_Text
     | JSON_Object
     | JSON_Schema{ json_schema :: JSONSchema }
-    deriving stock (Generic, Show)
+    deriving stock (Eq, Generic, Show)
 
 responseFormatOptions :: Options
 responseFormatOptions = aesonOptions
@@ -39,5 +39,10 @@ data JSONSchema = JSONSchema
     , name :: Text
     , schema :: Maybe Value
     , strict :: Maybe Bool
-    } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON, ToJSON)
+    } deriving stock (Eq, Generic, Show)
+
+instance FromJSON JSONSchema where
+    parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON JSONSchema where
+    toJSON = genericToJSON aesonOptions
