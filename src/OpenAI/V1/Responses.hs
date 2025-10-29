@@ -1,4 +1,4 @@
--- | /v1/responses
+-- | \/v1/responses
 --
 -- Streaming is not implemented here; this covers JSON responses only.
 module OpenAI.V1.Responses
@@ -22,9 +22,14 @@ module OpenAI.V1.Responses
     , WebSearchAction(..)
     , WebSearchSource(..)
     , Annotation(..)
+    , ReasoningSummary(..)
+    , Reasoning(..)
+    , _Reasoning
     , ReasoningItem(..)
     , SummaryPart(..)
     , ReasoningText(..)
+    , ReasoningEffort(..)
+    , ServiceTier
     , ResponseStreamEvent(..)
     , ResponseObject(..)
     , ResponseUsage(..)
@@ -41,6 +46,7 @@ import Data.Aeson (Object)
 import qualified Data.Aeson as Aeson
 import OpenAI.Prelude hiding (Input(..))
 -- no TH; inline JSON instances for payloads
+import OpenAI.V1.AutoOr (AutoOr(..))
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
 import qualified Data.Aeson.Key as Key
@@ -61,6 +67,81 @@ import OpenAI.V1.Tool
 statusIncomplete, statusCompleted :: Text
 statusIncomplete = "incomplete"
 statusCompleted = "completed"
+
+-- | Specifies the processing tier used for the request
+type ServiceTier = Text
+
+-- | Constrains effort on reasoning for reasoning models.
+--
+-- Defaults to @ReasoningEffort_Medium@ when omitted. Reducing the effort can
+-- result in faster responses with fewer reasoning tokens. The `gpt-5-pro`
+-- model currently only supports @ReasoningEffort_High@.
+data ReasoningEffort
+    = ReasoningEffort_Minimal
+    | ReasoningEffort_Low
+    | ReasoningEffort_Medium
+    | ReasoningEffort_High
+    deriving stock (Eq, Generic, Show)
+
+reasoningEffortOptions :: Options
+reasoningEffortOptions =
+    aesonOptions
+        { constructorTagModifier = stripPrefix "ReasoningEffort_" }
+
+instance FromJSON ReasoningEffort where
+    parseJSON = genericParseJSON reasoningEffortOptions
+
+instance ToJSON ReasoningEffort where
+    toJSON = genericToJSON reasoningEffortOptions
+
+-- | Reasoning summary verbosity options.
+--
+-- Note: the @ReasoningSummary_Concise@ option is only supported for
+-- `computer-use-preview` models.
+data ReasoningSummary
+    = ReasoningSummary_Auto
+    | ReasoningSummary_Concise
+    | ReasoningSummary_Detailed
+    deriving stock (Eq, Generic, Show)
+
+reasoningSummaryOptions :: Options
+reasoningSummaryOptions =
+    aesonOptions
+        { constructorTagModifier = stripPrefix "ReasoningSummary_" }
+
+instance FromJSON ReasoningSummary where
+    parseJSON = genericParseJSON reasoningSummaryOptions
+
+instance ToJSON ReasoningSummary where
+    toJSON = genericToJSON reasoningSummaryOptions
+
+-- | Configuration options for reasoning models (`gpt-5` and o-series only).
+data Reasoning = Reasoning
+    { effort :: Maybe ReasoningEffort
+        -- ^ Constrains the amount of effort spent by the model on reasoning.
+    , summary :: Maybe ReasoningSummary
+        -- ^ Controls whether the model should produce a reasoning summary (one of
+        --   @auto@, @concise@, or @detailed@). The @concise@ option is currently
+        --   limited to `computer-use-preview` models.
+    , generate_summary :: Maybe ReasoningSummary
+        -- ^ **Deprecated:** use 'summary' instead. When present, behaves like
+        --   'summary' and accepts @auto@, @concise@, or @detailed@.
+    } deriving stock (Eq, Generic, Show)
+
+instance FromJSON Reasoning where
+    parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON Reasoning where
+    toJSON = genericToJSON aesonOptions
+
+-- | Default reasoning configuration
+_Reasoning :: Reasoning
+_Reasoning =
+    Reasoning
+        { effort = Nothing
+        , summary = Nothing
+        , generate_summary = Nothing
+        }
 
 -- | Input for the Responses API: a list of input items
 newtype Input = Input (Vector InputItem)
@@ -544,7 +625,7 @@ instance FromJSON ReasoningItem where
 instance ToJSON ReasoningItem where
     toJSON = genericToJSON aesonOptions
 
--- | Streaming events for /v1/responses
+-- | Streaming events for \/v1/responses
 data ResponseStreamEvent
     = ResponseCreatedEvent
         { response :: ResponseObject
@@ -751,7 +832,8 @@ data ResponseObject = ResponseObject
     , output :: Vector OutputItem
     , parallel_tool_calls :: Bool
     , previous_response_id :: Maybe Text
-    , reasoning :: Maybe Value
+    , reasoning :: Maybe Reasoning
+    , service_tier :: Maybe ServiceTier
     , store :: Maybe Bool
     , temperature :: Maybe Double
     , tool_choice :: Maybe ToolChoice
@@ -776,11 +858,13 @@ instance ToJSON ResponseObject where
                     (flattenResponseToolFields mTools mChoice o)
             other -> other
 
--- | Request body for /v1/responses
+-- | Request body for \/v1/responses
 data CreateResponse = CreateResponse
     { model :: Model
     , input :: Maybe Input
     , include :: Maybe (Vector Text)
+    , reasoning :: Maybe Reasoning
+    , service_tier :: Maybe (AutoOr ServiceTier)
     , parallel_tool_calls :: Maybe Bool
     , store :: Maybe Bool
     , instructions :: Maybe Text
@@ -811,6 +895,8 @@ _CreateResponse :: CreateResponse
 _CreateResponse = CreateResponse
     { input = Nothing
     , include = Nothing
+    , reasoning = Nothing
+    , service_tier = Nothing
     , parallel_tool_calls = Nothing
     , store = Nothing
     , instructions = Nothing
@@ -823,7 +909,7 @@ _CreateResponse = CreateResponse
     , tool_choice = Nothing
     }
 
--- | Servant API for /v1/responses
+-- | Servant API for \/v1/responses
 type API =
         "responses"
     :>  (         ReqBody '[JSON] CreateResponse

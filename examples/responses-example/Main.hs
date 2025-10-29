@@ -29,6 +29,8 @@ main = do
                     , Responses.status = Nothing
                     }
                 ])
+            , Responses.reasoning = Just Responses._Reasoning
+                { Responses.effort = Just Responses.ReasoningEffort_Minimal }
             }
 
     resp <- createResponse req

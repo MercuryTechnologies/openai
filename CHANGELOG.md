@@ -1,3 +1,8 @@
+2.2.0:
+
+- Add structured reasoning support to `OpenAI.V1.Responses`, including the `Reasoning`, `ReasoningEffort`, and `ReasoningSummary` types, plus the `ServiceTier` alias.
+- Extend `CreateResponse` and `ResponseObject` with `reasoning` and `service_tier` fields to round-trip reasoning configuration.
+
 2.1.0:
 
 - Add `Item_Input_Reasoning` constructor and JSON round-trip test so reasoning traces from tool calls can be echoed back via the Responses API.
