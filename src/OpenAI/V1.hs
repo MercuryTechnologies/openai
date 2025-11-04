@@ -338,6 +338,22 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
                 Aeson.Error msg -> onEvent (Left (Text.pack msg))
                 Aeson.Success e -> onEvent (Right e)
 
+    -- Streaming implementation for chat completions
+    createChatCompletionStream req onEvent = do
+        let req' = req{ Chat.Completions.stream = Just True }
+        ssePostJSON "/v1/chat/completions" req' onEvent
+
+    createChatCompletionStreamTyped
+        :: CreateChatCompletion
+        -> (Either Text Chat.Completions.ChatCompletionStreamEvent -> IO ())
+        -> IO ()
+    createChatCompletionStreamTyped req onEvent =
+        createChatCompletionStream req $ \ev -> case ev of
+            Left err -> onEvent (Left err)
+            Right val -> case Aeson.fromJSON val of
+                Aeson.Error msg -> onEvent (Left (Text.pack msg))
+                Aeson.Success e -> onEvent (Right e)
+
     ssePostJSON :: ToJSON a
                 => String
                 -> a
@@ -465,6 +481,14 @@ data Methods = Methods
     , createTranscription :: CreateTranscription -> IO TranscriptionObject
     , createTranslation :: CreateTranslation -> IO TranslationObject
     , createChatCompletion :: CreateChatCompletion -> IO ChatCompletionObject
+    , createChatCompletionStream
+        :: CreateChatCompletion
+        -> (Either Text Aeson.Value -> IO ())
+        -> IO ()
+    , createChatCompletionStreamTyped
+        :: CreateChatCompletion
+        -> (Either Text Chat.Completions.ChatCompletionStreamEvent -> IO ())
+        -> IO ()
     , createResponse :: CreateResponse -> IO ResponseObject
     , createResponseStream
         :: CreateResponse

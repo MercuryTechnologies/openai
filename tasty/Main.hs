@@ -14,7 +14,7 @@ import OpenAI.V1.Audio.Transcriptions (CreateTranscription(..))
 import OpenAI.V1.Audio.Translations (CreateTranslation(..))
 import OpenAI.V1.AutoOr (AutoOr(..))
 import OpenAI.V1.Batches (BatchObject(..), CreateBatch(..))
-import OpenAI.V1.Chat.Completions (CreateChatCompletion(..), Modality(..))
+import OpenAI.V1.Chat.Completions (CreateChatCompletion(..), Modality(..), ChatCompletionChunk(..), ChunkChoice(..), delta_content)
 import OpenAI.V1.Embeddings (CreateEmbeddings(..), EncodingFormat(..))
 import OpenAI.V1.Files (FileObject(..), Order(..), UploadFile(..))
 import OpenAI.V1.Images.Edits (CreateImageEdit(..))
@@ -178,6 +178,7 @@ main = do
                   seed = Nothing,
                   service_tier = Nothing,
                   stop = Nothing,
+                  stream = Nothing,
                   temperature = Nothing,
                   top_p = Nothing,
                   tools = Nothing,
@@ -218,6 +219,7 @@ main = do
                   seed = Nothing,
                   service_tier = Nothing,
                   stop = Nothing,
+                  stream = Nothing,
                   temperature = Nothing,
                   top_p = Nothing,
                   tools = Nothing,
@@ -279,6 +281,7 @@ main = do
                   seed = Just 0,
                   service_tier = Just Auto,
                   stop = Just [">>>"],
+                  stream = Nothing,
                   temperature = Just 1,
                   top_p = Just 1,
                   tools =
@@ -301,6 +304,65 @@ main = do
                 }
 
           return ()
+
+  let chatCompletionStreamingHaikuTest = do
+        HUnit.testCase "Create chat completion - streaming haiku" do
+              let req =
+                    CreateChatCompletion
+                        { messages =
+                            [ Completions.User
+                                { content = ["Hello, world!"],
+                                  name = Nothing
+                                }
+                            ],
+                          model = chatModel,
+                          store = Nothing,
+                          metadata = Nothing,
+                          frequency_penalty = Nothing,
+                          logit_bias = Nothing,
+                          logprobs = Nothing,
+                          top_logprobs = Nothing,
+                          max_completion_tokens = Nothing,
+                          n = Nothing,
+                          modalities = Nothing,
+                          prediction = Nothing,
+                          audio = Nothing,
+                          presence_penalty = Nothing,
+                          reasoning_effort = Nothing,
+                          response_format = Nothing,
+                          seed = Nothing,
+                          service_tier = Nothing,
+                          stop = Nothing,
+                          stream = Nothing,
+                          temperature = Nothing,
+                          top_p = Nothing,
+                          tools = Nothing,
+                          tool_choice = Nothing,
+                          parallel_tool_calls = Nothing,
+                          user = Nothing,
+                          web_search_options = Nothing
+                        }
+
+              acc <- IORef.newIORef (Text.empty)
+              done <- Concurrent.newEmptyMVar
+
+              let onEvent (Left _err) = Concurrent.putMVar done ()
+                  onEvent (Right ev) = case ev of
+                    ChatCompletionChunk{ choices = cs } ->
+                        mapM_ accChoice cs
+                      where
+                        accChoice ChunkChoice{ delta = d } = case delta_content d of
+                            Just content -> IORef.modifyIORef' acc (<> content)
+                            Nothing -> Concurrent.putMVar done ()
+
+              createChatCompletionStreamTyped req onEvent
+
+              _ <- Concurrent.takeMVar done
+              text <- IORef.readIORef acc
+              HUnit.assertBool "Expected non-empty streamed text" (not (Text.null text))
+
+              return ()
+          
 
   let embeddingsTest = do
         HUnit.testCase "Create embedding" do
@@ -1039,6 +1101,7 @@ main = do
                completionsMinimalTest,
                completionsMinimalReasoningTest,
                completionsMaximalTest,
+               chatCompletionStreamingHaikuTest,
                embeddingsTest,
                fineTuningTest,
                batchesTest,

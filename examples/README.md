@@ -20,6 +20,23 @@ A simple example demonstrating basic chat completion with the OpenAI API.
 cabal run openai-example
 ```
 
+### [`chat-completions-stream-example`](./chat-completions-stream-example/)
+
+Streams events from the Chat Completions API and prints content deltas in real time.
+
+**Features:**
+
+- Calls `/v1/chat/completions` with `stream = true`
+- Handles streaming chunks and prints content deltas as they arrive
+- Shows multiple examples: haiku generation, conversation, and code generation
+- Demonstrates both `createChatCompletionStream` and `createChatCompletionStreamTyped`
+
+**Usage:**
+
+```bash
+cabal run chat-completions-stream-example
+```
+
 ### [`weather-chatbot-example`](./weather-chatbot-example/)
 
 A chatbot example demonstrating tool calling and turn-based conversation flow.
@@ -88,6 +105,7 @@ Build specific example:
 
 ```bash
 cabal build openai-example
+cabal build chat-completions-stream-example
 cabal build weather-chatbot-example
 cabal build responses-example
 cabal build responses-stream-example

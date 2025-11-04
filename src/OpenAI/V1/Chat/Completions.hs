@@ -1,6 +1,6 @@
 -- | @\/v1\/chat\/completions@
 --
--- Streaming results are not yet supported
+-- Streaming is not implemented here;
 module OpenAI.V1.Chat.Completions
     ( -- * Main types
       CreateChatCompletion(..)
@@ -10,6 +10,11 @@ module OpenAI.V1.Chat.Completions
     , Message(..)
     , messageToContent
     , Content(..)
+      -- * Streaming types
+    , ChatCompletionChunk(..)
+    , ChunkChoice(..)
+    , Delta(..)
+    , ChatCompletionStreamEvent
       -- * Other types
     , InputAudio(..)
     , ImageURL(..)
@@ -298,6 +303,7 @@ data CreateChatCompletion = CreateChatCompletion
     , seed :: Maybe Integer
     , service_tier :: Maybe (AutoOr ServiceTier)
     , stop :: Maybe (Vector Text)
+    , stream :: Maybe Bool
     , temperature :: Maybe Double
     , top_p :: Maybe Double
     , tools :: Maybe (Vector Tool)
@@ -333,6 +339,7 @@ _CreateChatCompletion = CreateChatCompletion
     , seed = Nothing
     , service_tier = Nothing
     , stop = Nothing
+    , stream = Nothing
     , temperature = Nothing
     , top_p = Nothing
     , tools = Nothing
@@ -394,6 +401,50 @@ data ChatCompletionObject = ChatCompletionObject
     , usage :: Usage CompletionTokensDetails PromptTokensDetails
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON, ToJSON)
+
+-- | Delta message content for streaming
+data Delta = Delta
+    { delta_content :: Maybe Text
+    , delta_refusal :: Maybe Text
+    , delta_role :: Maybe Text
+    , delta_tool_calls :: Maybe (Vector ToolCall)
+    } deriving stock (Generic, Show)
+
+deltaOptions :: Options
+deltaOptions = aesonOptions
+    { fieldLabelModifier = stripPrefix "delta_"
+    }
+
+instance FromJSON Delta where
+    parseJSON = genericParseJSON deltaOptions
+
+instance ToJSON Delta where
+    toJSON = genericToJSON deltaOptions
+
+-- | A streaming choice chunk
+data ChunkChoice = ChunkChoice
+    { delta :: Delta
+    , finish_reason :: Maybe Text
+    , index :: Natural
+    , logprobs :: Maybe LogProbs
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Chat completion chunk (streaming response)
+data ChatCompletionChunk = ChatCompletionChunk
+    { id :: Text
+    , choices :: Vector ChunkChoice
+    , created :: POSIXTime
+    , model :: Model
+    , service_tier :: Maybe ServiceTier
+    , system_fingerprint :: Maybe Text
+    , object :: Text
+    , usage :: Maybe (Usage CompletionTokensDetails PromptTokensDetails)
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Type alias for streaming events (currently just chunks)
+type ChatCompletionStreamEvent = ChatCompletionChunk
 
 -- | Servant API
 type API =
