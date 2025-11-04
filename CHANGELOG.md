@@ -1,3 +1,7 @@
+2.2.1:
+
+- [Add Chat Completion Streaming Support](https://github.com/MercuryTechnologies/openai/pull/78)
+
 2.2.0:
 
 - Add structured reasoning support to `OpenAI.V1.Responses`, including the `Reasoning`, `ReasoningEffort`, and `ReasoningSummary` types, plus the `ServiceTier` alias.
