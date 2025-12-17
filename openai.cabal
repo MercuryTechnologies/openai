@@ -53,6 +53,7 @@ library
                         OpenAI.V1.AutoOr
                         OpenAI.V1.Batches
                         OpenAI.V1.Chat.Completions
+                        OpenAI.V1.ChatKit
                         OpenAI.V1.ChunkingStrategy
                         OpenAI.V1.DeletionStatus
                         OpenAI.V1.Embeddings

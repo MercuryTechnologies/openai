@@ -15,6 +15,7 @@ module OpenAI.Prelude
     , module Data.Map
     , module Data.String
     , module Data.Text
+    , module Data.Time
     , module Data.Time.Clock.POSIX
     , module Data.Vector
     , module Data.Void
@@ -31,6 +32,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import Data.String (IsString(..))
 import Data.Text (Text)
+import Data.Time (NominalDiffTime)
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Vector (Vector)
 import Data.Void (Void)

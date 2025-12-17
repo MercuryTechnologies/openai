@@ -77,6 +77,13 @@ import Servant.Multipart.Client ()
 
 import OpenAI.V1.Assistants
     (AssistantID, AssistantObject, CreateAssistant, ModifyAssistant)
+import OpenAI.V1.ChatKit
+    ( CancelChatSession
+    , CreateChatKitSession
+    , ChatSessionObject
+    , SessionID
+    , ThreadItem
+    )
 import OpenAI.V1.FineTuning.Jobs
     ( CheckpointObject
     , CreateFineTuningJob
@@ -127,6 +134,7 @@ import qualified OpenAI.V1.Assistants as Assistants
 import qualified OpenAI.V1.Audio as Audio
 import qualified OpenAI.V1.Batches as Batches
 import qualified OpenAI.V1.Chat.Completions as Chat.Completions
+import qualified OpenAI.V1.ChatKit as ChatKit
 import qualified OpenAI.V1.Embeddings as Embeddings
 import qualified OpenAI.V1.Files as Files
 import qualified OpenAI.V1.FineTuning.Jobs as FineTuning.Jobs
@@ -180,8 +188,15 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
     (       (     createSpeech
             :<|>  createTranscription_
             :<|>  createTranslation_
-                    )
+            )
       :<|>  createChatCompletion
+      :<|>  (     createChatKitSession
+            :<|>  cancelChatSession
+            :<|>  _listChatKitThreads
+            :<|>  retrieveChatKitThread
+            :<|>  deleteChatKitThread
+            :<|>  _listChatKitThreadItems
+            )
       :<|>  (     createResponse
             :<|>  retrieveResponse
             :<|>  cancelResponse
@@ -321,6 +336,8 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
     listVectorStoreFilesInABatch a b c d e f g =
         toVector (listVectorStoreFilesInABatch_ a b c d e f g)
     listResponseInputItems a = toVector (listResponseInputItems_ a)
+    listChatKitThreads a b c d e = toVector (_listChatKitThreads a b c d e)
+    listChatKitThreadItems a b c d e = toVector (_listChatKitThreadItems a b c d e)
 
     -- Streaming implementation using http-client and SSE parsing
     createResponseStream req onEvent = do
@@ -481,6 +498,33 @@ data Methods = Methods
     , createTranscription :: CreateTranscription -> IO TranscriptionObject
     , createTranslation :: CreateTranslation -> IO TranslationObject
     , createChatCompletion :: CreateChatCompletion -> IO ChatCompletionObject
+    , createChatKitSession :: CreateChatKitSession -> IO ChatSessionObject
+    , cancelChatSession :: SessionID -> IO CancelChatSession
+    , listChatKitThreads
+        :: Maybe Text
+        -- ^ after
+        -> Maybe Text
+        -- ^ before
+        -> Maybe Natural
+        -- ^ limit
+        -> Maybe Order
+        -- ^ order
+        -> Maybe Text
+        -- ^ user
+        -> IO (Vector ChatKit.ThreadObject)
+    , retrieveChatKitThread :: ChatKit.ThreadID -> IO ChatKit.ThreadObject
+    , deleteChatKitThread :: ChatKit.ThreadID -> IO DeletionStatus
+    , listChatKitThreadItems
+        :: ChatKit.ThreadID
+        -> Maybe Text
+        -- ^ after
+        -> Maybe Text
+        -- ^ before
+        -> Maybe Natural
+        -- ^ limit
+        -> Maybe Order
+        -- ^ order
+        -> IO (Vector ThreadItem)
     , createChatCompletionStream
         :: CreateChatCompletion
         -> (Either Text Aeson.Value -> IO ())
@@ -712,6 +756,7 @@ type API
     :>  "v1"
     :>  (     Audio.API
         :<|>  Chat.Completions.API
+        :<|>  ChatKit.API
         :<|>  Responses.API
         :<|>  Embeddings.API
         :<|>  FineTuning.Jobs.API
