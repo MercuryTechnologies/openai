@@ -23,7 +23,7 @@ import OpenAI.V1.Images.Variations (CreateImageVariation(..))
 import OpenAI.V1.Message (Message(..))
 import OpenAI.V1.Moderations (CreateModeration(..))
 import OpenAI.V1.Threads.Messages (MessageObject(..), ModifyMessage(..))
-import OpenAI.V1.Tool (Tool(..), ToolChoice(..))
+import OpenAI.V1.Tool (CodeInterpreterContainer(..), Tool(..), ToolChoice(..))
 import OpenAI.V1.ToolCall (ToolCall(..))
 import Prelude hiding (id)
 
@@ -1007,7 +1007,13 @@ main = do
                     Responses.metadata = Nothing,
                     Responses.temperature = Nothing,
                     Responses.top_p = Nothing,
-                    Responses.tools = Just [Tool.codeInterpreterAuto],
+                    Responses.tools = Just
+                      [ Responses.Tool_Code_Interpreter
+                          { container = Just CodeInterpreterContainer_Auto
+                              { file_ids = Nothing
+                              }
+                          }
+                      ],
                     Responses.tool_choice = Just Tool.ToolChoiceRequired
                   }
 
