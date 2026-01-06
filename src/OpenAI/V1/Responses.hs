@@ -31,6 +31,7 @@ module OpenAI.V1.Responses
     , ReasoningEffort(..)
     , ServiceTier
     , ResponseStreamEvent(..)
+    , Tool(..)
     , ResponseObject(..)
     , ResponseUsage(..)
     , InputTokensDetails(..)
@@ -43,25 +44,13 @@ module OpenAI.V1.Responses
     ) where
 
 import Data.Aeson (Object)
-import qualified Data.Aeson as Aeson
 import OpenAI.Prelude hiding (Input(..))
--- no TH; inline JSON instances for payloads
 import OpenAI.V1.AutoOr (AutoOr(..))
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
-import qualified Data.Aeson.Key as Key
-import qualified Data.Aeson.KeyMap as KeyMap
-import qualified Data.Vector as Vector
+
 import OpenAI.V1.Tool
-    ( Tool
-    , ToolChoice
-    , toolChoiceAutoText
-    , toolChoiceNoneText
-    , toolChoiceRequiredText
-    , toolChoiceToResponsesValue
-    , toolToResponsesValue
-    , unflattenToolValue
-    )
+    (CodeInterpreterContainer, RankingOptions, ToolChoice(..))
 
 -- | Status constants for function call outputs
 statusIncomplete, statusCompleted :: Text
@@ -232,50 +221,6 @@ instance FromJSON InputItem where
 
 instance ToJSON InputItem where
     toJSON = genericToJSON inputItemOptions
-
-keyTools :: Key.Key
-keyTools = Key.fromText "tools"
-
-keyToolChoice :: Key.Key
-keyToolChoice = Key.fromText "tool_choice"
-
-flattenResponseToolFields
-    :: Maybe (Vector Tool)
-    -> Maybe ToolChoice
-    -> KeyMap.KeyMap Value
-    -> KeyMap.KeyMap Value
-flattenResponseToolFields mTools mChoice o =
-    let oWithTools = case mTools of
-            Nothing -> o
-            Just ts -> KeyMap.insert keyTools (Aeson.Array (Vector.map toolToResponsesValue ts)) o
-        oWithChoice = case mChoice of
-            Nothing -> oWithTools
-            Just choice -> KeyMap.insert keyToolChoice (toolChoiceToResponsesValue choice) oWithTools
-    in oWithChoice
-
-unflattenResponseToolFields :: KeyMap.KeyMap Value -> KeyMap.KeyMap Value
-unflattenResponseToolFields = adjustChoice . adjustTools
-  where
-    adjustTools = adjustKey keyTools (mapArrayValues unflattenToolValue)
-    adjustChoice = adjustKey keyToolChoice unflattenChoice
-
-    unflattenChoice (String s)
-        | s `elem` ([toolChoiceNoneText, toolChoiceAutoText, toolChoiceRequiredText] :: [Text]) = String s
-    unflattenChoice other = unflattenToolValue other
-
-mapArrayValues :: (Value -> Value) -> Value -> Value
-mapArrayValues f (Aeson.Array arr) = Aeson.Array (Vector.map f arr)
-mapArrayValues _ other = other
-
-adjustKey
-    :: Key.Key
-    -> (Value -> Value)
-    -> KeyMap.KeyMap Value
-    -> KeyMap.KeyMap Value
-adjustKey key f obj =
-    case KeyMap.lookup key obj of
-        Nothing -> obj
-        Just v -> KeyMap.insert key (f v) obj
 
 -- | Output content from the model
 data OutputContent
@@ -798,7 +743,6 @@ instance FromJSON ResponseStreamEvent where
 instance ToJSON ResponseStreamEvent where
     toJSON = genericToJSON responseStreamEventOptions
 
-
 -- | Usage statistics for the response request
 data ResponseUsage = ResponseUsage
     { input_tokens :: Natural
@@ -818,6 +762,40 @@ data OutputTokensDetails = OutputTokensDetails
     { reasoning_tokens :: Natural
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON, ToJSON)
+
+-- | A tool enabled on the assistant
+data Tool
+    = Tool_Code_Interpreter
+        { container :: Maybe CodeInterpreterContainer
+        }
+    | Tool_File_Search
+        { max_num_results :: Maybe Natural
+        , ranking_options :: Maybe RankingOptions
+        }
+    | Tool_Function
+        { description :: Maybe Text
+        , name :: Text
+        , parameters :: Maybe Value
+        , strict :: Maybe Bool
+        }
+    | Tool_Web_Search
+    deriving stock (Generic, Show)
+
+toolOptions :: Options
+toolOptions = aesonOptions
+    { sumEncoding =
+        TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+
+    , tagSingleConstructors = True
+
+    , constructorTagModifier = stripPrefix "Tool_"
+    }
+
+instance FromJSON Tool where
+    parseJSON = genericParseJSON toolOptions
+
+instance ToJSON Tool where
+    toJSON = genericToJSON toolOptions
 
 -- | Response object
 data ResponseObject = ResponseObject
@@ -844,19 +822,7 @@ data ResponseObject = ResponseObject
     , user :: Maybe Text
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
-
-instance FromJSON ResponseObject where
-    parseJSON (Aeson.Object o) =
-        genericParseJSON aesonOptions (Aeson.Object (unflattenResponseToolFields o))
-    parseJSON other = genericParseJSON aesonOptions other
-
-instance ToJSON ResponseObject where
-    toJSON response@ResponseObject{ tools = mTools, tool_choice = mChoice } =
-        case genericToJSON aesonOptions response of
-            Aeson.Object o ->
-                Aeson.Object
-                    (flattenResponseToolFields mTools mChoice o)
-            other -> other
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Request body for \/v1/responses
 data CreateResponse = CreateResponse
@@ -876,19 +842,7 @@ data CreateResponse = CreateResponse
     , tools :: Maybe (Vector Tool)
     , tool_choice :: Maybe ToolChoice
     } deriving stock (Generic, Show)
-
-instance FromJSON CreateResponse where
-    parseJSON (Aeson.Object o) =
-        genericParseJSON aesonOptions (Aeson.Object (unflattenResponseToolFields o))
-    parseJSON other = genericParseJSON aesonOptions other
-
-instance ToJSON CreateResponse where
-    toJSON request@CreateResponse{ tools = mTools, tool_choice = mChoice } =
-        case genericToJSON aesonOptions request of
-            Aeson.Object o ->
-                Aeson.Object
-                    (flattenResponseToolFields mTools mChoice o)
-            other -> other
+      deriving anyclass (FromJSON, ToJSON)
 
 -- | Default CreateResponse
 _CreateResponse :: CreateResponse

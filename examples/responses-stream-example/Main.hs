@@ -5,6 +5,8 @@
 
 module Main where
 
+import OpenAI.V1.Responses (Tool(..))
+import OpenAI.V1.Tool (CodeInterpreterContainer(..))
 import System.Environment (getEnv)
 import System.IO (hFlush, hPutStrLn, stderr, stdout)
 
@@ -12,7 +14,6 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified OpenAI.V1 as V1
 import qualified OpenAI.V1.Responses as Responses
-import qualified OpenAI.V1.Tool as Tool
 
 main :: IO ()
 main = do
@@ -56,7 +57,7 @@ main = do
                     , Responses.status = Nothing
                     }
                 ])
-            , Responses.tools = Just [ Tool.Tool_Web_Search ]
+            , Responses.tools = Just [ Tool_Web_Search ]
             }
 
     createResponseStreamTyped reqSearch onEvent
@@ -74,7 +75,13 @@ main = do
                     , Responses.status = Nothing
                     }
                 ])
-            , Responses.tools = Just [ Tool.codeInterpreterAuto ]
+            , Responses.tools = Just
+                [ Responses.Tool_Code_Interpreter
+                    { container = Just CodeInterpreterContainer_Auto
+                        { file_ids = Nothing
+                        }
+                    }
+                ]
             }
 
     createResponseStreamTyped reqCode onEvent

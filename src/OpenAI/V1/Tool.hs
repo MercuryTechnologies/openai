@@ -7,38 +7,17 @@ module OpenAI.V1.Tool
     , Function(..)
     , ToolChoice(..)
     , CodeInterpreterContainer(..)
-      -- * Constants
-    , toolChoiceNoneText
-    , toolChoiceAutoText
-    , toolChoiceRequiredText
       -- * Helpers
     , codeInterpreter
     , codeInterpreterAuto
     , codeInterpreterWithFiles
-    , toolToResponsesValue
-    , parseResponsesToolValue
-    , toolChoiceToResponsesValue
-    , parseResponsesToolChoiceValue
-    , flattenToolValue
-    , unflattenToolValue
     ) where
 
 import Data.Aeson ((.:), (.:?), (.=))
-import Data.Aeson.Types (Parser)
 import OpenAI.Prelude
-import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Key as Key
-import qualified Data.Aeson.KeyMap as KeyMap
-import qualified Data.HashSet as HashSet
-import Data.HashSet (HashSet)
-import Data.List (partition)
-import qualified Data.Vector as V
 
--- | Tool choice string constants
-toolChoiceNoneText, toolChoiceAutoText, toolChoiceRequiredText :: Text
-toolChoiceNoneText = "none"
-toolChoiceAutoText = "auto"
-toolChoiceRequiredText = "required"
+import qualified Data.Aeson as Aeson
+import qualified Data.Vector as V
 
 -- | The ranking options for the file search
 data RankingOptions = RankingOptions
@@ -86,60 +65,6 @@ instance FromJSON Tool where
 
 instance ToJSON Tool where
     toJSON = genericToJSON toolOptions
-
-toolToResponsesValue :: Tool -> Value
-toolToResponsesValue = flattenToolValue . toJSON
-
-parseResponsesToolValue :: Value -> Parser Tool
-parseResponsesToolValue = parseJSON . unflattenToolValue
-
-toolChoiceToResponsesValue :: ToolChoice -> Value
-toolChoiceToResponsesValue ToolChoiceNone = String toolChoiceNoneText
-toolChoiceToResponsesValue ToolChoiceAuto = String toolChoiceAutoText
-toolChoiceToResponsesValue ToolChoiceRequired = String toolChoiceRequiredText
-toolChoiceToResponsesValue (ToolChoiceTool tool) = toolToResponsesValue tool
-
-parseResponsesToolChoiceValue :: Value -> Parser ToolChoice
-parseResponsesToolChoiceValue (String s)
-    | s == toolChoiceNoneText = pure ToolChoiceNone
-    | s == toolChoiceAutoText = pure ToolChoiceAuto
-    | s == toolChoiceRequiredText = pure ToolChoiceRequired
-parseResponsesToolChoiceValue other = ToolChoiceTool <$> parseResponsesToolValue other
-
-keyFunction, keyType :: Key.Key
-keyFunction = Key.fromText "function"
-keyType = Key.fromText "type"
-
-functionFieldKeys :: HashSet Key.Key
-functionFieldKeys = HashSet.fromList $ Key.fromText <$> ["description", "name", "parameters", "strict"]
-
-isFunctionField :: Key.Key -> Bool
-isFunctionField = (`HashSet.member` functionFieldKeys)
-
-partitionFunctionFields
-    :: KeyMap.KeyMap Value
-    -> (KeyMap.KeyMap Value, KeyMap.KeyMap Value)
-partitionFunctionFields obj =
-    let (fnPairs, restPairs) = partition (isFunctionField . fst) (KeyMap.toList obj)
-    in (KeyMap.fromList fnPairs, KeyMap.fromList restPairs)
-
-flattenToolValue :: Value -> Value
-flattenToolValue value@(Aeson.Object o) =
-    maybe value flattenFunction (KeyMap.lookup keyFunction o)
-  where
-    flattenFunction (Aeson.Object fnFields) =
-        Aeson.Object (KeyMap.delete keyFunction o <> fnFields)
-    flattenFunction _ = value
-flattenToolValue value = value
-
-unflattenToolValue :: Value -> Value
-unflattenToolValue value@(Aeson.Object o)
-    | KeyMap.lookup keyType o == Just (String "function")
-    , not (KeyMap.member keyFunction o) =
-        let (fnFields, rest) = partitionFunctionFields o
-        in Aeson.Object (KeyMap.insert keyFunction (Aeson.Object fnFields) rest)
-    | otherwise = value
-unflattenToolValue value = value
 
 -- | Controls which (if any) tool is called by the model
 data ToolChoice
