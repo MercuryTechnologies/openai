@@ -6,19 +6,20 @@
 module Main where
 
 import Data.Aeson (FromJSON (..), (.:), (.=), withObject)
-import qualified Data.Aeson as Aeson
-import qualified Data.ByteString.Lazy as LBS
 import Data.Foldable (toList)
 import Data.Text (Text)
+import OpenAI.V1 (Methods (..))
+import OpenAI.V1.Responses (Tool(..))
+import System.Environment (getEnv)
+
+import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Data.Text.IO as TextIO
 import qualified Data.Vector as Vector
-import OpenAI.V1 (Methods (..))
 import qualified OpenAI.V1 as V1
 import qualified OpenAI.V1.Responses as Responses
-import OpenAI.V1.Tool (Function (..), Tool (..))
-import System.Environment (getEnv)
 
 -- | Simple JSON payload for parsing function arguments
 newtype HoroscopeArgs = HoroscopeArgs { sign :: Text }
@@ -34,25 +35,24 @@ getHoroscope sign = sign <> ": Next Tuesday you will befriend a baby otter."
 horoscopeTool :: Tool
 horoscopeTool =
     Tool_Function
-        Function
-            { description = Just "Get today's horoscope for an astrological sign."
-            , name = "get_horoscope"
-            , parameters =
-                Just . Aeson.object $
-                    [ "type" .= ("object" :: Text)
-                    , "properties"
-                        .= Aeson.object
-                            [ "sign"
-                                .= Aeson.object
-                                    [ "type" .= ("string" :: Text)
-                                    , "description" .= ("An astrological sign like Taurus or Aquarius" :: Text)
-                                    ]
-                            ]
-                    , "required" .= (["sign"] :: [Text])
-                    , "additionalProperties" .= False
-                    ]
-            , strict = Just True
-            }
+        { description = Just "Get today's horoscope for an astrological sign."
+        , name = "get_horoscope"
+        , parameters =
+            Just . Aeson.object $
+                [ "type" .= ("object" :: Text)
+                , "properties"
+                    .= Aeson.object
+                        [ "sign"
+                            .= Aeson.object
+                                [ "type" .= ("string" :: Text)
+                                , "description" .= ("An astrological sign like Taurus or Aquarius" :: Text)
+                                ]
+                        ]
+                , "required" .= (["sign"] :: [Text])
+                , "additionalProperties" .= False
+                ]
+        , strict = Just True
+        }
 
 main :: IO ()
 main = do
