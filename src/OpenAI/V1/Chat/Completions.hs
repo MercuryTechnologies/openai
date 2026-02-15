@@ -15,6 +15,9 @@ module OpenAI.V1.Chat.Completions
     , ChunkChoice(..)
     , Delta(..)
     , ChatCompletionStreamEvent
+      -- * Stream options
+    , ChatCompletionStreamOptions(..)
+    , _ChatCompletionStreamOptions
       -- * Other types
     , InputAudio(..)
     , ImageURL(..)
@@ -282,6 +285,18 @@ data WebSearchOptions = WebSearchOptions
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON, ToJSON)
 
+-- | Options for streaming response. Only set this when you set @stream: true@.
+data ChatCompletionStreamOptions = ChatCompletionStreamOptions
+    { include_usage :: Maybe Bool
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Default `ChatCompletionStreamOptions`
+_ChatCompletionStreamOptions :: ChatCompletionStreamOptions
+_ChatCompletionStreamOptions = ChatCompletionStreamOptions
+    { include_usage = Nothing
+    }
+
 -- | Request body for @\/v1\/chat\/completions@
 data CreateChatCompletion = CreateChatCompletion
     { messages :: Vector (Message (Vector Content))
@@ -304,6 +319,7 @@ data CreateChatCompletion = CreateChatCompletion
     , service_tier :: Maybe (AutoOr ServiceTier)
     , stop :: Maybe (Vector Text)
     , stream :: Maybe Bool
+    , stream_options :: Maybe ChatCompletionStreamOptions
     , temperature :: Maybe Double
     , top_p :: Maybe Double
     , tools :: Maybe (Vector Tool)
@@ -340,6 +356,7 @@ _CreateChatCompletion = CreateChatCompletion
     , service_tier = Nothing
     , stop = Nothing
     , stream = Nothing
+    , stream_options = Nothing
     , temperature = Nothing
     , top_p = Nothing
     , tools = Nothing
