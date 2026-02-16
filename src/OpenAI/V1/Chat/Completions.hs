@@ -219,7 +219,8 @@ type ServiceTier = Text
 
 -- | Constrains effort on reasoning for reasoning models
 data ReasoningEffort
-    = ReasoningEffort_Minimal
+    = ReasoningEffort_None
+    | ReasoningEffort_Minimal
     | ReasoningEffort_Low
     | ReasoningEffort_Medium
     | ReasoningEffort_High

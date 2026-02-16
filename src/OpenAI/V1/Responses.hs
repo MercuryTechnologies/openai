@@ -66,7 +66,8 @@ type ServiceTier = Text
 -- result in faster responses with fewer reasoning tokens. The `gpt-5-pro`
 -- model currently only supports @ReasoningEffort_High@.
 data ReasoningEffort
-    = ReasoningEffort_Minimal
+    = ReasoningEffort_None
+    | ReasoningEffort_Minimal
     | ReasoningEffort_Low
     | ReasoningEffort_Medium
     | ReasoningEffort_High
