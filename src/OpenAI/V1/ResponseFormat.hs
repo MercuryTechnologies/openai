@@ -11,7 +11,7 @@ import OpenAI.Prelude
 data ResponseFormat
     = ResponseFormat_Text
     | JSON_Object
-    | JSON_Schema{ json_schema :: JSONSchema }
+    | JSON_Schema {json_schema :: JSONSchema}
     deriving stock (Generic, Show)
 
 responseFormatOptions :: Options
@@ -23,6 +23,9 @@ responseFormatOptions = aesonOptions
 
     , constructorTagModifier = stripPrefix "ResponseFormat_"
     }
+
+-- >>> toJSON $ JSON_Schema (JSONSchema {name = "name", description = Nothing, schema = Just $ toJSON "schema", strict = Just True})
+-- Object (fromList [("",Object (fromList [("description",Null),("name",String "name"),("schema",String "schema"),("strict",Bool True)])),("type",String "json_schema")])
 
 instance FromJSON ResponseFormat where
     parseJSON = genericParseJSON responseFormatOptions

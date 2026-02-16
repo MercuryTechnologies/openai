@@ -41,6 +41,9 @@ module OpenAI.V1.Responses
     , statusCompleted
       -- * Servant
     , API
+    , ResponseTextConfig(..)
+    , Verbosity(..)
+    , ResponseFormat(..)
     ) where
 
 import Data.Aeson (Object)
@@ -842,6 +845,7 @@ data CreateResponse = CreateResponse
     , top_p :: Maybe Double
     , tools :: Maybe (Vector Tool)
     , tool_choice :: Maybe ToolChoice
+    , text :: Maybe ResponseTextConfig
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON, ToJSON)
 
@@ -862,7 +866,60 @@ _CreateResponse = CreateResponse
     , top_p = Nothing
     , tools = Nothing
     , tool_choice = Nothing
+    , text = Nothing
     }
+
+data ResponseTextConfig = ResponseTextConfig
+    { format :: Maybe ResponseFormat
+    , verbosity :: Maybe Verbosity
+    }
+    deriving stock (Show, Generic)
+    deriving anyclass (ToJSON,FromJSON)
+
+
+data Verbosity = Verbosity_Low |  Verbosity_Medium | Verbosity_High
+    deriving stock (Show,Generic)
+
+verbosityOptions :: Options
+verbosityOptions = aesonOptions { constructorTagModifier = stripPrefix "Verbosity_"}
+
+instance FromJSON Verbosity where
+    parseJSON = genericParseJSON verbosityOptions
+
+instance ToJSON Verbosity where
+    toJSON = genericToJSON verbosityOptions
+
+responseFormatOptions :: Options
+responseFormatOptions = aesonOptions
+    { sumEncoding =
+        TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+
+    , tagSingleConstructors = True
+
+    , constructorTagModifier = stripPrefix "ResponseFormat_"
+    , omitNothingFields = True
+    }
+
+instance FromJSON ResponseFormat where
+    parseJSON = genericParseJSON responseFormatOptions
+
+instance ToJSON ResponseFormat where
+    toJSON = genericToJSON responseFormatOptions
+
+-- | Setting to { "type": "json_schema", "json_schema": {...} } enables
+-- Structured Outputs which ensures the model will match your supplied JSON
+-- schema. Learn more in the
+-- [Structured Outputs](https://platform.openai.com/docs/guides/structured-outputs) guide
+data ResponseFormat =
+    JSON_Schema
+    { description :: Maybe Text
+    , name :: Text
+    , schema :: Maybe Value
+    , strict :: Maybe Bool
+    }
+    | ResponseFormat_Text
+    | JSON_Object
+    deriving stock (Generic, Show)
 
 -- | Servant API for \/v1/responses
 type API =
