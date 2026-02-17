@@ -287,7 +287,17 @@ data WebSearchOptions = WebSearchOptions
 
 -- | Options for streaming response. Only set this when you set @stream: true@.
 data ChatCompletionStreamOptions = ChatCompletionStreamOptions
-    { include_usage :: Maybe Bool
+    { -- | If set, an additional chunk will be streamed before @data: [DONE]@
+      -- with total usage in @usage@ and an empty @choices@ array. Other
+      -- chunks include @usage: null@. If the stream is interrupted, you may
+      -- not receive this final usage chunk.
+      include_usage :: Maybe Bool
+      -- | When @True@, stream obfuscation is enabled. This adds random
+      -- characters to an obfuscation field on delta events to normalize
+      -- payload sizes. Obfuscation is included by default; set this to
+      -- @False@ to reduce bandwidth overhead when your network links are
+      -- trusted.
+    , include_obfuscation :: Maybe Bool
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON, ToJSON)
 
@@ -295,6 +305,7 @@ data ChatCompletionStreamOptions = ChatCompletionStreamOptions
 _ChatCompletionStreamOptions :: ChatCompletionStreamOptions
 _ChatCompletionStreamOptions = ChatCompletionStreamOptions
     { include_usage = Nothing
+    , include_obfuscation = Nothing
     }
 
 -- | Request body for @\/v1\/chat\/completions@
