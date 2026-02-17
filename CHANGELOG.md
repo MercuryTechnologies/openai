@@ -1,3 +1,10 @@
+2.3.0:
+
+- Add `ChatCompletionStreamOptions` support for including usage in chat completion streams.
+- Simplify Responses tool JSON encoding/decoding.
+- Add support for `/v1/chatkit/*`.
+- Add missing arguments in `makeMethods` in the create chat example.
+
 2.2.1:
 
 - [Add Chat Completion Streaming Support](https://github.com/MercuryTechnologies/openai/pull/78)
