@@ -869,6 +869,8 @@ _CreateResponse = CreateResponse
     , tools = Nothing
     , tool_choice = Nothing
     , text = Nothing
+    , max_output_tokens = Nothing
+    , max_tool_calls = Nothing
     }
 
 data ResponseTextConfig = ResponseTextConfig
