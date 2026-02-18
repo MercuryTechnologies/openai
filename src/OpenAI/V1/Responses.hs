@@ -841,6 +841,8 @@ data CreateResponse = CreateResponse
     , stream :: Maybe Bool
     , stream_options :: Maybe Value
     , metadata :: Maybe (Map Text Text)
+    , max_output_tokens :: Maybe Int
+    , max_tool_calls :: Maybe Int
     , temperature :: Maybe Double
     , top_p :: Maybe Double
     , tools :: Maybe (Vector Tool)
