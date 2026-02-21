@@ -1,3 +1,7 @@
+2.4.0:
+
+- Add Structured Outputs support to the Responses API (`TextConfig`, `TextFormat`, `TextFormat_JSON_Schema`).
+
 2.3.0:
 
 - Add `ChatCompletionStreamOptions` support for including usage in chat completion streams.
