@@ -5,6 +5,9 @@ module OpenAI.V1.Responses
     ( -- * Main types
       CreateResponse(..)
     , _CreateResponse
+    , TextConfig(..)
+    , TextFormat(..)
+    , _TextConfig
     , Input(..)
     , InputItem(..)
     , InputRole(..)
@@ -51,6 +54,9 @@ import OpenAI.V1.Models (Model)
 
 import OpenAI.V1.Tool
     (CodeInterpreterContainer, RankingOptions, ToolChoice(..))
+
+import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.KeyMap as KeyMap
 
 -- | Status constants for function call outputs
 statusIncomplete, statusCompleted :: Text
@@ -824,6 +830,43 @@ data ResponseObject = ResponseObject
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON, ToJSON)
 
+-- | Format settings for the `text` object in \/v1/responses requests.
+data TextFormat
+    = TextFormat_Text
+    | TextFormat_JSON_Schema
+        { name :: Text
+        , description :: Maybe Text
+        , schema :: Maybe Value
+        , strict :: Maybe Bool
+        }
+    deriving stock (Generic, Show)
+
+textFormatOptions :: Options
+textFormatOptions =
+    aesonOptions
+        { sumEncoding = TaggedObject{ tagFieldName = "type", contentsFieldName = "" }
+        , tagSingleConstructors = True
+        , constructorTagModifier = stripPrefix "TextFormat_"
+        }
+
+instance FromJSON TextFormat where
+    parseJSON = genericParseJSON textFormatOptions
+
+instance ToJSON TextFormat where
+    toJSON = genericToJSON textFormatOptions
+
+-- | Text generation configuration for \/v1/responses requests.
+data TextConfig = TextConfig
+    { format :: TextFormat
+    } deriving stock (Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Default text configuration for CreateResponse.
+_TextConfig :: TextConfig
+_TextConfig = TextConfig
+    { format = TextFormat_Text
+    }
+
 -- | Request body for \/v1/responses
 data CreateResponse = CreateResponse
     { model :: Model
@@ -834,6 +877,7 @@ data CreateResponse = CreateResponse
     , parallel_tool_calls :: Maybe Bool
     , store :: Maybe Bool
     , instructions :: Maybe Text
+    , text :: Maybe TextConfig
     , stream :: Maybe Bool
     , stream_options :: Maybe Value
     , metadata :: Maybe (Map Text Text)
@@ -842,7 +886,18 @@ data CreateResponse = CreateResponse
     , tools :: Maybe (Vector Tool)
     , tool_choice :: Maybe ToolChoice
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON, ToJSON)
+      deriving anyclass (FromJSON)
+
+instance ToJSON CreateResponse where
+    toJSON request@CreateResponse{ text = textConfig } =
+        case genericToJSON Aeson.defaultOptions request of
+            Object object ->
+                Object
+                    ( case textConfig of
+                        Nothing -> KeyMap.delete "text" object
+                        Just _  -> object
+                    )
+            value -> value
 
 -- | Default CreateResponse
 _CreateResponse :: CreateResponse
@@ -854,6 +909,7 @@ _CreateResponse = CreateResponse
     , parallel_tool_calls = Nothing
     , store = Nothing
     , instructions = Nothing
+    , text = Nothing
     , stream = Nothing
     , stream_options = Nothing
     , metadata = Nothing

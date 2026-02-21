@@ -157,6 +157,7 @@ executable responses-example
     hs-source-dirs:   examples/responses-example
     main-is:          Main.hs
     build-depends:    base
+                    , aeson
                     , openai
                     , text
                     , vector
