@@ -8,6 +8,7 @@ module Main where
 import Data.Foldable (toList)
 import System.Environment (getEnv)
 
+import qualified Data.Aeson as Aeson
 import qualified Data.Text as Text
 import qualified Data.Text.IO as TextIO
 import qualified OpenAI.V1 as V1
@@ -20,7 +21,7 @@ main = do
 
     let V1.Methods{ createResponse } = V1.makeMethods env key Nothing Nothing
 
-    let req = Responses._CreateResponse
+    let classicRequest = Responses._CreateResponse
             { Responses.model = "gpt-5"
             , Responses.input = Just (Responses.Input
                 [ Responses.Item_Input_Message
@@ -33,10 +34,42 @@ main = do
                 { Responses.effort = Just Responses.ReasoningEffort_Minimal }
             }
 
-    resp <- createResponse req
+    classicResponse <- createResponse classicRequest
+    TextIO.putStrLn "--- Classic response ---"
+    mapM_ TextIO.putStrLn (collectText classicResponse)
 
-    let texts = collectText resp
-    mapM_ TextIO.putStrLn texts
+    let schemaObject = Aeson.object
+            [ "type" Aeson..= ("object" :: Text.Text)
+            , "properties" Aeson..= Aeson.object
+                [ "story" Aeson..= Aeson.object [ "type" Aeson..= ("string" :: Text.Text) ]
+                ]
+            , "required" Aeson..= (["story"] :: [Text.Text])
+            , "additionalProperties" Aeson..= False
+            ]
+        structuredRequest = Responses._CreateResponse
+            { Responses.model = "gpt-5"
+            , Responses.input = Just (Responses.Input
+                [ Responses.Item_Input_Message
+                    { Responses.role = Responses.User
+                    , Responses.content = [ Responses.Input_Text{ Responses.text = "Return a bedtime story JSON object." } ]
+                    , Responses.status = Nothing
+                    }
+                ])
+            , Responses.text = Just Responses._TextConfig
+                { Responses.format = Responses.TextFormat_JSON_Schema
+                    { Responses.description = Just "A bedtime story payload"
+                    , Responses.name = "bedtime_story"
+                    , Responses.schema = Just schemaObject
+                    , Responses.strict = Just True
+                    }
+                }
+            , Responses.reasoning = Just Responses._Reasoning
+                { Responses.effort = Just Responses.ReasoningEffort_Minimal }
+            }
+
+    structuredResponse <- createResponse structuredRequest
+    TextIO.putStrLn "--- Structured response ---"
+    mapM_ TextIO.putStrLn (collectText structuredResponse)
 
 collectText :: Responses.ResponseObject -> [Text.Text]
 collectText Responses.ResponseObject{ Responses.output } = do

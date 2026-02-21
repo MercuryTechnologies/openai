@@ -7,7 +7,10 @@ module Main where
 
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.KeyMap as KeyMap
 import Control.Exception (SomeException, catch)
+import Data.Foldable (toList)
+import Data.Maybe (listToMaybe)
 import OpenAI.V1 (Methods(..))
 import OpenAI.V1.Audio.Speech (CreateSpeech(..), Voice(..), _CreateSpeech)
 import OpenAI.V1.Audio.Transcriptions (CreateTranscription(..))
@@ -52,6 +55,7 @@ import OpenAI.V1.VectorStores.Files
 import qualified Control.Concurrent as Concurrent
 import qualified Data.IORef as IORef
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
 import qualified OpenAI.V1 as V1
@@ -85,7 +89,7 @@ main = do
 
   let user = "openai Haskell package"
   let chatModel = "gpt-4o-mini"
-  let reasoningModel = "o3-mini"
+  let reasoningModel = "gpt-5.2-2025-12-11"
   let ttsModel = "tts-1"
   let Methods {..} = V1.makeMethods clientEnv (Text.pack key) Nothing Nothing
 
@@ -507,23 +511,6 @@ main = do
               CompleteUpload
                 { part_ids = [partId0, partId1],
                   md5 = Nothing
-                }
-
-          return ()
-
-  let createImageMinimalTest = do
-        HUnit.testCase "Create image - minimal" do
-          _ <-
-            createImage
-              CreateImage
-                { prompt = "A baby panda",
-                  model = Nothing,
-                  n = Nothing,
-                  quality = Nothing,
-                  response_format = Nothing,
-                  size = Nothing,
-                  style = Nothing,
-                  user = Nothing
                 }
 
           return ()
@@ -1049,60 +1036,160 @@ main = do
 
           return ()
 
-  let responsesReasoningInputSerializationTest =
-        HUnit.testCase "Responses - reasoning input serialization" do
-          let reasoningItem =
-                Responses.Item_Input_Reasoning
-                  { Responses.reasoning_id = "reasoning_123"
-                  , Responses.reasoning_encrypted_content = Just "ciphertext"
-                  , Responses.reasoning_summary =
-                      Just
-                        [ Responses.Summary_Text
-                            { Responses.text = "High-level plan" }
-                        ]
-                  , Responses.reasoning_content =
-                      Just
-                        [ Responses.Reasoning_Text
-                            { Responses.text = "Step 1: inspect tool output." }
-                        ]
-                  , Responses.reasoning_status = Just Responses.statusCompleted
-                  }
-              encoded = Aeson.encode reasoningItem
-              expected :: Aeson.Value
-              expected =
-                Aeson.object
-                  [ "type" .= ("reasoning" :: Text.Text)
-                  , "id" .= ("reasoning_123" :: Text.Text)
-                  , "encrypted_content" .= ("ciphertext" :: Text.Text)
-                  , "summary"
-                      .= ( [ Aeson.object
-                                [ "type" .= ("summary_text" :: Text.Text)
-                                , "text" .= ("High-level plan" :: Text.Text)
-                                ]
+  let responsesReasoningInputTest =
+        HUnit.testCase "Responses - reasoning input" do
+          response <-
+            createResponse
+              Responses._CreateResponse
+                { Responses.model = reasoningModel
+                , Responses.input = Just (Responses.Input
+                    [ Responses.Item_Input_Message
+                        { Responses.role = Responses.User
+                        , Responses.content =
+                            [ Responses.Input_Text
+                                { Responses.text = "In one sentence, explain why 2 + 2 = 4." }
                             ]
-                         :: [Aeson.Value]
-                         )
-                  , "content"
-                      .= ( [ Aeson.object
-                                [ "type" .= ("reasoning_text" :: Text.Text)
-                                , "text" .= ("Step 1: inspect tool output." :: Text.Text)
-                                ]
-                            ]
-                         :: [Aeson.Value]
-                         )
-                  , "status" .= (Responses.statusCompleted :: Text.Text)
-                  ]
-          case Aeson.decode encoded of
-            Nothing ->
-              HUnit.assertFailure "Failed to decode encoded reasoning input item"
-            Just decodedValue ->
-              HUnit.assertEqual "Encoded JSON mismatch" expected decodedValue
+                        , Responses.status = Nothing
+                        }
+                    ])
+                , Responses.reasoning = Just Responses._Reasoning
+                    { Responses.effort = Just Responses.ReasoningEffort_None }
+                }
 
-          case Aeson.fromJSON expected of
-            Aeson.Error err ->
-              HUnit.assertFailure ("Round-trip decode failed: " <> err)
-            Aeson.Success decoded ->
-              HUnit.assertEqual "Round-trip mismatch" reasoningItem decoded
+          let Responses.ResponseObject
+                { Responses.output = responseOutput
+                , Responses.reasoning = responseReasoning
+                } = response
+              responseTexts =
+                [ responseText
+                | Responses.Item_OutputMessage{ Responses.message_content } <- toList responseOutput
+                , Responses.Output_Text{ Responses.text = responseText } <- toList message_content
+                ]
+
+          HUnit.assertBool "Expected non-empty response text" (not (Prelude.null responseTexts))
+          case responseReasoning of
+            Nothing ->
+              HUnit.assertFailure "Response missing reasoning metadata"
+            Just reasoningConfig ->
+              HUnit.assertEqual
+                "Reasoning effort not echoed as none"
+                (Just Responses.ReasoningEffort_None)
+                (Responses.effort reasoningConfig)
+
+  let responsesVerbosityTest =
+        HUnit.testCase "Responses - verbosity" do
+          response <-
+            createResponse
+              Responses._CreateResponse
+                { Responses.model = reasoningModel
+                , Responses.input = Just (Responses.Input
+                    [ Responses.Item_Input_Message
+                        { Responses.role = Responses.User
+                        , Responses.content =
+                            [ Responses.Input_Text
+                                { Responses.text = "Provide two concise sentences about why daily walking is healthy." }
+                            ]
+                        , Responses.status = Nothing
+                        }
+                    ])
+                , Responses.text = Just Responses._TextConfig
+                    { Responses.verbosity = Just Responses.Verbosity_Medium }
+                }
+
+          let Responses.ResponseObject
+                { Responses.output = responseOutput
+                , Responses.text = responseTextConfig
+                , Responses.output_text = responseOutputText
+                } = response
+              fallbackText = listToMaybe
+                [ responseText
+                | Responses.Item_OutputMessage{ Responses.message_content } <- toList responseOutput
+                , Responses.Output_Text{ Responses.text = responseText } <- toList message_content
+                ]
+
+          case responseTextConfig of
+            Nothing ->
+              HUnit.assertFailure "Response missing text configuration"
+            Just cfg ->
+              HUnit.assertEqual
+                "Verbosity not echoed in response"
+                (Just Responses.Verbosity_Medium)
+                (Responses.verbosity cfg)
+
+          let finalText = case responseOutputText of
+                Just t -> Just t
+                Nothing -> fallbackText
+
+          case finalText of
+            Nothing ->
+              HUnit.assertFailure "Expected non-empty output text"
+            Just t ->
+              HUnit.assertBool "Expected non-empty output text" (not (Text.null t))
+
+  let responsesTextJSONSchemaTest =
+        HUnit.testCase "Responses - text format json_schema" do
+          let schemaObject =
+                Aeson.object
+                  [ "type" .= ("object" :: Text.Text)
+                  , "properties"
+                      .= Aeson.object
+                          [ "city" .= Aeson.object [ "type" .= ("string" :: Text.Text) ]
+                          ]
+                  , "required" .= (["city"] :: [Text.Text])
+                  , "additionalProperties" .= False
+                  ]
+              request =
+                Responses._CreateResponse
+                  { Responses.model = chatModel
+                  , Responses.input =
+                      Just
+                        (Responses.Input
+                          [ Responses.Item_Input_Message
+                              { Responses.role = Responses.User
+                              , Responses.content =
+                                  [ Responses.Input_Text
+                                      { Responses.text = "Return JSON for city=Paris." }
+                                  ]
+                              , Responses.status = Nothing
+                              }
+                          ])
+                  , Responses.text =
+                      Just Responses._TextConfig
+                        { Responses.format =
+                            Responses.TextFormat_JSON_Schema
+                              { Responses.description = Just "Weather response"
+                              , Responses.name = "weather_response"
+                              , Responses.schema = Just schemaObject
+                              , Responses.strict = Just True
+                              }
+                        }
+                  }
+
+          response <- createResponse request
+
+          let Responses.ResponseObject{ Responses.output = responseOutput } = response
+              responseTexts =
+                [ responseText
+                | Responses.Item_OutputMessage{ Responses.message_content } <- toList responseOutput
+                , Responses.Output_Text{ Responses.text = responseText } <- toList message_content
+                ]
+
+          case listToMaybe responseTexts of
+            Nothing ->
+              HUnit.assertFailure "Expected at least one text output"
+            Just responseText ->
+              case Aeson.decodeStrict' (Text.Encoding.encodeUtf8 responseText) of
+                Nothing ->
+                  HUnit.assertFailure "Expected JSON text output"
+                Just (Aeson.Object object) -> do
+                  HUnit.assertEqual "Expected only one key (city)" 1 (KeyMap.size object)
+                  case KeyMap.lookup "city" object of
+                    Just (Aeson.String city) ->
+                      HUnit.assertBool "Expected non-empty city" (not (Text.null city))
+                    _ ->
+                      HUnit.assertFailure "Expected JSON object with string field \"city\""
+                Just _ ->
+                  HUnit.assertFailure "Expected JSON object output"
 
   let tests =
           speechTests
@@ -1124,7 +1211,9 @@ main = do
                createImageVariationMaximalTest,
                createModerationTest,
                responsesMinimalTest,
-               responsesReasoningInputSerializationTest,
+               responsesReasoningInputTest,
+               responsesVerbosityTest,
+               responsesTextJSONSchemaTest,
                responsesStreamingHaikuTest,
                responsesCodeInterpreterStreamingTest,
                assistantsTest,

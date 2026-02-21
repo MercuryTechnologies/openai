@@ -73,6 +73,56 @@ main = do
     print res
 ```
 
+### Responses API (Structured Outputs)
+
+```haskell
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE OverloadedStrings     #-}
+
+import qualified Data.Aeson as Aeson
+import qualified Data.Text as Text
+import qualified OpenAI.V1 as V1
+import qualified OpenAI.V1.Responses as Responses
+
+main :: IO ()
+main = do
+    key <- System.Environment.getEnv "OPENAI_KEY"
+
+    env <- V1.getClientEnv "https://api.openai.com"
+    let V1.Methods{ createResponse } = V1.makeMethods env (Text.pack key) Nothing Nothing
+
+    let schemaObject = Aeson.object
+            [ "type" Aeson..= ("object" :: Text.Text)
+            , "properties" Aeson..= Aeson.object
+                [ "greeting" Aeson..= Aeson.object [ "type" Aeson..= ("string" :: Text.Text) ] ]
+            , "required" Aeson..= (["greeting"] :: [Text.Text])
+            , "additionalProperties" Aeson..= False
+            ]
+
+    let req = Responses._CreateResponse
+            { Responses.model = "gpt-5"
+            , Responses.input = Just (Responses.Input
+                [ Responses.Item_Input_Message
+                    { Responses.role = Responses.User
+                    , Responses.content = [ Responses.Input_Text{ Responses.text = "Say hello." } ]
+                    , Responses.status = Nothing
+                    }
+                ])
+            , Responses.text = Just Responses._TextConfig
+                { Responses.format = Responses.TextFormat_JSON_Schema
+                    { Responses.name = "greeting"
+                    , Responses.description = Just "Greeting payload"
+                    , Responses.schema = Just schemaObject
+                    , Responses.strict = Just True
+                    }
+                }
+            }
+
+    res <- createResponse req
+    print res
+```
 
 ## Setup
 
