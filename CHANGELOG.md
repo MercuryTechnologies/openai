@@ -1,6 +1,9 @@
 2.4.0:
 
 - Add Structured Outputs support to the Responses API (`TextConfig`, `TextFormat`, `TextFormat_JSON_Schema`).
+- Extend Responses supplementary request/response fields, including `conversation`, `prompt`, `tool_resources`, `truncation`, `max_output_tokens`, `max_tool_calls`, `top_logprobs`, `safety_identifier`, `prompt_cache_key`, and `user`.
+- Add `verbosity` support on Responses text config via `Verbosity` and `text.verbosity`.
+- Add `ReasoningEffort_None` for Responses reasoning effort.
 
 2.3.0:
 

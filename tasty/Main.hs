@@ -89,7 +89,7 @@ main = do
 
   let user = "openai Haskell package"
   let chatModel = "gpt-4o-mini"
-  let reasoningModel = "o3-mini"
+  let reasoningModel = "gpt-5.2-2025-12-11"
   let ttsModel = "tts-1"
   let Methods {..} = V1.makeMethods clientEnv (Text.pack key) Nothing Nothing
 
@@ -511,23 +511,6 @@ main = do
               CompleteUpload
                 { part_ids = [partId0, partId1],
                   md5 = Nothing
-                }
-
-          return ()
-
-  let createImageMinimalTest = do
-        HUnit.testCase "Create image - minimal" do
-          _ <-
-            createImage
-              CreateImage
-                { prompt = "A baby panda",
-                  model = Nothing,
-                  n = Nothing,
-                  quality = Nothing,
-                  response_format = Nothing,
-                  size = Nothing,
-                  style = Nothing,
-                  user = Nothing
                 }
 
           return ()
@@ -1060,18 +1043,7 @@ main = do
               Responses._CreateResponse
                 { Responses.model = reasoningModel
                 , Responses.input = Just (Responses.Input
-                    [ Responses.Item_Input_Reasoning
-                        { Responses.reasoning_id = "rs_seed"
-                        , Responses.reasoning_encrypted_content = Nothing
-                        , Responses.reasoning_summary =
-                            Just
-                              [ Responses.Summary_Text
-                                  { Responses.text = "Prior context: arithmetic basics." }
-                              ]
-                        , Responses.reasoning_content = Nothing
-                        , Responses.reasoning_status = Nothing
-                        }
-                    , Responses.Item_Input_Message
+                    [ Responses.Item_Input_Message
                         { Responses.role = Responses.User
                         , Responses.content =
                             [ Responses.Input_Text
@@ -1081,10 +1053,13 @@ main = do
                         }
                     ])
                 , Responses.reasoning = Just Responses._Reasoning
-                    { Responses.effort = Just Responses.ReasoningEffort_Low }
+                    { Responses.effort = Just Responses.ReasoningEffort_None }
                 }
 
-          let Responses.ResponseObject{ Responses.output = responseOutput } = response
+          let Responses.ResponseObject
+                { Responses.output = responseOutput
+                , Responses.reasoning = responseReasoning
+                } = response
               responseTexts =
                 [ responseText
                 | Responses.Item_OutputMessage{ Responses.message_content } <- toList responseOutput
@@ -1092,6 +1067,64 @@ main = do
                 ]
 
           HUnit.assertBool "Expected non-empty response text" (not (Prelude.null responseTexts))
+          case responseReasoning of
+            Nothing ->
+              HUnit.assertFailure "Response missing reasoning metadata"
+            Just reasoningConfig ->
+              HUnit.assertEqual
+                "Reasoning effort not echoed as none"
+                (Just Responses.ReasoningEffort_None)
+                (Responses.effort reasoningConfig)
+
+  let responsesVerbosityTest =
+        HUnit.testCase "Responses - verbosity" do
+          response <-
+            createResponse
+              Responses._CreateResponse
+                { Responses.model = reasoningModel
+                , Responses.input = Just (Responses.Input
+                    [ Responses.Item_Input_Message
+                        { Responses.role = Responses.User
+                        , Responses.content =
+                            [ Responses.Input_Text
+                                { Responses.text = "Provide two concise sentences about why daily walking is healthy." }
+                            ]
+                        , Responses.status = Nothing
+                        }
+                    ])
+                , Responses.text = Just Responses._TextConfig
+                    { Responses.verbosity = Just Responses.Verbosity_Medium }
+                }
+
+          let Responses.ResponseObject
+                { Responses.output = responseOutput
+                , Responses.text = responseTextConfig
+                , Responses.output_text = responseOutputText
+                } = response
+              fallbackText = listToMaybe
+                [ responseText
+                | Responses.Item_OutputMessage{ Responses.message_content } <- toList responseOutput
+                , Responses.Output_Text{ Responses.text = responseText } <- toList message_content
+                ]
+
+          case responseTextConfig of
+            Nothing ->
+              HUnit.assertFailure "Response missing text configuration"
+            Just cfg ->
+              HUnit.assertEqual
+                "Verbosity not echoed in response"
+                (Just Responses.Verbosity_Medium)
+                (Responses.verbosity cfg)
+
+          let finalText = case responseOutputText of
+                Just t -> Just t
+                Nothing -> fallbackText
+
+          case finalText of
+            Nothing ->
+              HUnit.assertFailure "Expected non-empty output text"
+            Just t ->
+              HUnit.assertBool "Expected non-empty output text" (not (Text.null t))
 
   let responsesTextJSONSchemaTest =
         HUnit.testCase "Responses - text format json_schema" do
@@ -1179,6 +1212,7 @@ main = do
                createModerationTest,
                responsesMinimalTest,
                responsesReasoningInputTest,
+               responsesVerbosityTest,
                responsesTextJSONSchemaTest,
                responsesStreamingHaikuTest,
                responsesCodeInterpreterStreamingTest,

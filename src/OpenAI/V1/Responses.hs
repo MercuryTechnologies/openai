@@ -5,8 +5,13 @@ module OpenAI.V1.Responses
     ( -- * Main types
       CreateResponse(..)
     , _CreateResponse
+    , Conversation(..)
+    , ConversationParam(..)
     , TextConfig(..)
     , TextFormat(..)
+    , Verbosity(..)
+    , Prompt(..)
+    , Truncation(..)
     , _TextConfig
     , Input(..)
     , InputItem(..)
@@ -51,12 +56,12 @@ import OpenAI.Prelude hiding (Input(..))
 import OpenAI.V1.AutoOr (AutoOr(..))
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
+import OpenAI.V1.ToolResources (ToolResources)
 
 import OpenAI.V1.Tool
     (CodeInterpreterContainer, RankingOptions, ToolChoice(..))
 
 import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.KeyMap as KeyMap
 
 -- | Status constants for function call outputs
 statusIncomplete, statusCompleted :: Text
@@ -72,7 +77,8 @@ type ServiceTier = Text
 -- result in faster responses with fewer reasoning tokens. The `gpt-5-pro`
 -- model currently only supports @ReasoningEffort_High@.
 data ReasoningEffort
-    = ReasoningEffort_Minimal
+    = ReasoningEffort_None
+    | ReasoningEffort_Minimal
     | ReasoningEffort_Low
     | ReasoningEffort_Medium
     | ReasoningEffort_High
@@ -137,6 +143,87 @@ _Reasoning =
         , summary = Nothing
         , generate_summary = Nothing
         }
+
+-- | Verbosity options for text responses.
+data Verbosity
+    = Verbosity_Low
+    | Verbosity_Medium
+    | Verbosity_High
+    deriving stock (Eq, Generic, Show)
+
+verbosityOptions :: Options
+verbosityOptions =
+    aesonOptions
+        { constructorTagModifier = stripPrefix "Verbosity_" }
+
+instance FromJSON Verbosity where
+    parseJSON = genericParseJSON verbosityOptions
+
+instance ToJSON Verbosity where
+    toJSON = genericToJSON verbosityOptions
+
+-- | Prompt template reference.
+data Prompt = Prompt
+    { id :: Text
+    , version :: Maybe Text
+    , variables :: Maybe Value
+    } deriving stock (Eq, Generic, Show)
+      deriving anyclass (FromJSON, ToJSON)
+
+-- | Conversation reference supplied when creating responses.
+data ConversationParam
+    = ConversationParam_ID Text
+    | ConversationParam_Object
+        { id :: Text
+        }
+    deriving stock (Eq, Generic, Show)
+
+instance FromJSON ConversationParam where
+    parseJSON value =
+        case value of
+            String conversationId -> pure (ConversationParam_ID conversationId)
+            Object _ ->
+                Aeson.withObject "ConversationParam" (\object -> ConversationParam_Object <$> object Aeson..: "id") value
+            _ -> fail "ConversationParam must be a string ID or object with an id field"
+
+instance ToJSON ConversationParam where
+    toJSON (ConversationParam_ID conversationId) = toJSON conversationId
+    toJSON ConversationParam_Object{ id = conversationId } =
+        Aeson.object [ "id" Aeson..= conversationId ]
+
+-- | Conversation metadata returned by the API.
+newtype Conversation = Conversation
+    { id :: Text
+    } deriving stock (Eq, Generic, Show)
+
+instance FromJSON Conversation where
+    parseJSON value =
+        case value of
+            String conversationId -> pure (Conversation conversationId)
+            Object _ ->
+                Aeson.withObject "Conversation" (\object -> Conversation <$> object Aeson..: "id") value
+            _ -> fail "Conversation must be a string ID or object with an id field"
+
+instance ToJSON Conversation where
+    toJSON Conversation{ id = conversationId } =
+        Aeson.object [ "id" Aeson..= conversationId ]
+
+-- | Truncation strategy controls for responses.
+data Truncation
+    = Truncation_Auto
+    | Truncation_Disabled
+    deriving stock (Eq, Generic, Show)
+
+truncationOptions :: Options
+truncationOptions =
+    aesonOptions
+        { constructorTagModifier = stripPrefix "Truncation_" }
+
+instance FromJSON Truncation where
+    parseJSON = genericParseJSON truncationOptions
+
+instance ToJSON Truncation where
+    toJSON = genericToJSON truncationOptions
 
 -- | Input for the Responses API: a list of input items
 newtype Input = Input (Vector InputItem)
@@ -814,18 +901,29 @@ data ResponseObject = ResponseObject
     , instructions :: Maybe Value
     , model :: Model
     , output :: Vector OutputItem
+    , output_text :: Maybe Text
     , parallel_tool_calls :: Bool
+    , conversation :: Maybe Conversation
     , previous_response_id :: Maybe Text
     , reasoning :: Maybe Reasoning
+    , background :: Maybe Bool
+    , max_output_tokens :: Maybe Natural
+    , max_tool_calls :: Maybe Natural
+    , text :: Maybe TextConfig
+    , prompt :: Maybe Prompt
     , service_tier :: Maybe ServiceTier
+    , tool_resources :: Maybe ToolResources
     , store :: Maybe Bool
     , temperature :: Maybe Double
+    , top_logprobs :: Maybe Word
     , tool_choice :: Maybe ToolChoice
     , tools :: Maybe (Vector Tool)
     , top_p :: Maybe Double
-    , truncation :: Maybe Text
+    , truncation :: Maybe Truncation
     , usage :: Maybe ResponseUsage
     , user :: Maybe Text
+    , safety_identifier :: Maybe Text
+    , prompt_cache_key :: Maybe Text
     , metadata :: Maybe (Map Text Text)
     } deriving stock (Generic, Show)
       deriving anyclass (FromJSON, ToJSON)
@@ -839,7 +937,7 @@ data TextFormat
         , schema :: Maybe Value
         , strict :: Maybe Bool
         }
-    deriving stock (Generic, Show)
+    deriving stock (Eq, Generic, Show)
 
 textFormatOptions :: Options
 textFormatOptions =
@@ -858,65 +956,90 @@ instance ToJSON TextFormat where
 -- | Text generation configuration for \/v1/responses requests.
 data TextConfig = TextConfig
     { format :: TextFormat
+    , verbosity :: Maybe Verbosity
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON, ToJSON)
+
+instance FromJSON TextConfig where
+    parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON TextConfig where
+    toJSON = genericToJSON aesonOptions
 
 -- | Default text configuration for CreateResponse.
 _TextConfig :: TextConfig
 _TextConfig = TextConfig
     { format = TextFormat_Text
+    , verbosity = Nothing
     }
 
 -- | Request body for \/v1/responses
 data CreateResponse = CreateResponse
     { model :: Model
     , input :: Maybe Input
+    , previous_response_id :: Maybe Text
+    , conversation :: Maybe ConversationParam
     , include :: Maybe (Vector Text)
     , reasoning :: Maybe Reasoning
+    , text :: Maybe TextConfig
     , service_tier :: Maybe (AutoOr ServiceTier)
+    , background :: Maybe Bool
+    , max_output_tokens :: Maybe Natural
+    , max_tool_calls :: Maybe Natural
     , parallel_tool_calls :: Maybe Bool
+    , tool_resources :: Maybe ToolResources
     , store :: Maybe Bool
     , instructions :: Maybe Text
-    , text :: Maybe TextConfig
     , stream :: Maybe Bool
     , stream_options :: Maybe Value
     , metadata :: Maybe (Map Text Text)
+    , top_logprobs :: Maybe Word
     , temperature :: Maybe Double
     , top_p :: Maybe Double
+    , prompt_cache_key :: Maybe Text
+    , safety_identifier :: Maybe Text
+    , user :: Maybe Text
+    , prompt :: Maybe Prompt
     , tools :: Maybe (Vector Tool)
     , tool_choice :: Maybe ToolChoice
+    , truncation :: Maybe Truncation
     } deriving stock (Generic, Show)
-      deriving anyclass (FromJSON)
+
+instance FromJSON CreateResponse where
+    parseJSON = genericParseJSON aesonOptions
 
 instance ToJSON CreateResponse where
-    toJSON request@CreateResponse{ text = textConfig } =
-        case genericToJSON Aeson.defaultOptions request of
-            Object object ->
-                Object
-                    ( case textConfig of
-                        Nothing -> KeyMap.delete "text" object
-                        Just _  -> object
-                    )
-            value -> value
+    toJSON = genericToJSON aesonOptions
 
 -- | Default CreateResponse
 _CreateResponse :: CreateResponse
 _CreateResponse = CreateResponse
     { input = Nothing
+    , previous_response_id = Nothing
+    , conversation = Nothing
     , include = Nothing
     , reasoning = Nothing
+    , text = Nothing
     , service_tier = Nothing
+    , background = Nothing
+    , max_output_tokens = Nothing
+    , max_tool_calls = Nothing
     , parallel_tool_calls = Nothing
+    , tool_resources = Nothing
     , store = Nothing
     , instructions = Nothing
-    , text = Nothing
     , stream = Nothing
     , stream_options = Nothing
     , metadata = Nothing
+    , top_logprobs = Nothing
     , temperature = Nothing
     , top_p = Nothing
+    , prompt_cache_key = Nothing
+    , safety_identifier = Nothing
+    , user = Nothing
+    , prompt = Nothing
     , tools = Nothing
     , tool_choice = Nothing
+    , truncation = Nothing
     }
 
 -- | Servant API for \/v1/responses
