@@ -1,3 +1,7 @@
+2.5.0:
+
+- **BREAKING (streaming imports):** move chat-completion streaming payload types (`ChatCompletionChunk`, `ChunkChoice`, `Delta`, `ChatCompletionStreamEvent`) from `OpenAI.V1.Chat.Completions` to `OpenAI.V1.Chat.Completions.Stream` to avoid selector ambiguity on `choices`/`usage` in non-streaming imports.
+
 2.4.0:
 
 - Add Structured Outputs support to the Responses API (`TextConfig`, `TextFormat`, `TextFormat_JSON_Schema`).

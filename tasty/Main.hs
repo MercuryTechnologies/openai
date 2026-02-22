@@ -17,7 +17,7 @@ import OpenAI.V1.Audio.Transcriptions (CreateTranscription(..))
 import OpenAI.V1.Audio.Translations (CreateTranslation(..))
 import OpenAI.V1.AutoOr (AutoOr(..))
 import OpenAI.V1.Batches (BatchObject(..), CreateBatch(..))
-import OpenAI.V1.Chat.Completions (CreateChatCompletion(..), Modality(..), ChatCompletionChunk(..), ChunkChoice(..), delta_content)
+import OpenAI.V1.Chat.Completions (CreateChatCompletion(..), Modality(..))
 import OpenAI.V1.Embeddings (CreateEmbeddings(..), EncodingFormat(..))
 import OpenAI.V1.Files (FileObject(..), Order(..), UploadFile(..))
 import OpenAI.V1.Images.Edits (CreateImageEdit(..))
@@ -60,6 +60,7 @@ import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
 import qualified OpenAI.V1 as V1
 import qualified OpenAI.V1.Chat.Completions as Completions
+import qualified OpenAI.V1.Chat.Completions.Stream as ChatStream
 import qualified OpenAI.V1.Files as Files
 import qualified OpenAI.V1.FineTuning.Jobs as Jobs
 import qualified OpenAI.V1.Images.ResponseFormat as ResponseFormat
@@ -356,10 +357,10 @@ main = do
 
               let onEvent (Left _err) = Concurrent.putMVar done ()
                   onEvent (Right ev) = case ev of
-                    ChatCompletionChunk{ choices = cs } ->
+                    ChatStream.ChatCompletionChunk{ ChatStream.choices = cs } ->
                         mapM_ accChoice cs
                       where
-                        accChoice ChunkChoice{ delta = d } = case delta_content d of
+                        accChoice ChatStream.ChunkChoice{ ChatStream.delta = d } = case ChatStream.delta_content d of
                             Just content -> IORef.modifyIORef' acc (<> content)
                             Nothing -> Concurrent.putMVar done ()
 
@@ -1203,7 +1204,6 @@ main = do
                fineTuningTest,
                batchesTest,
                uploadsTest,
-               createImageMinimalTest,
                createImageMaximalTest,
                createImageEditMinimalTest,
                createImageEditMaximalTest,

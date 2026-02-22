@@ -28,6 +28,7 @@ Streams events from the Chat Completions API and prints content deltas in real t
 
 - Calls `/v1/chat/completions` with `stream = true`
 - Handles streaming chunks and prints content deltas as they arrive
+- Imports streaming payload types from `OpenAI.V1.Chat.Completions.Stream`
 - Shows multiple examples: haiku generation, conversation, and code generation
 - Demonstrates both `createChatCompletionStream` and `createChatCompletionStreamTyped`
 
