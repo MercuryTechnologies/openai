@@ -134,6 +134,7 @@ import qualified OpenAI.V1.Assistants as Assistants
 import qualified OpenAI.V1.Audio as Audio
 import qualified OpenAI.V1.Batches as Batches
 import qualified OpenAI.V1.Chat.Completions as Chat.Completions
+import qualified OpenAI.V1.Chat.Completions.Stream as Chat.Completions.Stream
 import qualified OpenAI.V1.ChatKit as ChatKit
 import qualified OpenAI.V1.Embeddings as Embeddings
 import qualified OpenAI.V1.Files as Files
@@ -362,7 +363,7 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
 
     createChatCompletionStreamTyped
         :: CreateChatCompletion
-        -> (Either Text Chat.Completions.ChatCompletionStreamEvent -> IO ())
+        -> (Either Text Chat.Completions.Stream.ChatCompletionStreamEvent -> IO ())
         -> IO ()
     createChatCompletionStreamTyped req onEvent =
         createChatCompletionStream req $ \ev -> case ev of
@@ -531,7 +532,7 @@ data Methods = Methods
         -> IO ()
     , createChatCompletionStreamTyped
         :: CreateChatCompletion
-        -> (Either Text Chat.Completions.ChatCompletionStreamEvent -> IO ())
+        -> (Either Text Chat.Completions.Stream.ChatCompletionStreamEvent -> IO ())
         -> IO ()
     , createResponse :: CreateResponse -> IO ResponseObject
     , createResponseStream

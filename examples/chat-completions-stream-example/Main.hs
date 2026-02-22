@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified OpenAI.V1 as V1
 import qualified OpenAI.V1.Chat.Completions as Chat
+import qualified OpenAI.V1.Chat.Completions.Stream as ChatStream
 
 main :: IO ()
 main = do
@@ -23,10 +24,10 @@ main = do
     let onEvent (Left err) = hPutStrLn stderr ("stream error: " <> T.unpack err)
         onEvent (Right chunk) = case chunk of
             -- Print content deltas as they arrive
-            Chat.ChatCompletionChunk{ Chat.choices = cs } ->
+            ChatStream.ChatCompletionChunk{ ChatStream.choices = cs } ->
                 mapM_ printChoice cs
               where
-                printChoice Chat.ChunkChoice{ Chat.delta = d } = case Chat.delta_content d of
+                printChoice ChatStream.ChunkChoice{ ChatStream.delta = d } = case ChatStream.delta_content d of
                     Just content -> TIO.putStr content >> hFlush stdout
                     Nothing -> pure ()
 

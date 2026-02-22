@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               openai
-version:            2.4.0
+version:            2.5.0
 synopsis:           Servant bindings to OpenAI
 description:        This package provides comprehensive and type-safe bindings
                     to OpenAI, providing both a Servant interface and
@@ -53,6 +53,7 @@ library
                         OpenAI.V1.AutoOr
                         OpenAI.V1.Batches
                         OpenAI.V1.Chat.Completions
+                        OpenAI.V1.Chat.Completions.Stream
                         OpenAI.V1.ChatKit
                         OpenAI.V1.ChunkingStrategy
                         OpenAI.V1.DeletionStatus
