@@ -51,8 +51,9 @@ module OpenAI.V1.Responses
     , API
     ) where
 
+import Control.Applicative ((<|>))
 import Data.Aeson (Object)
-import OpenAI.Prelude hiding (Input(..))
+import OpenAI.Prelude hiding (Input(..), input)
 import OpenAI.V1.AutoOr (AutoOr(..))
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
@@ -783,6 +784,185 @@ data ResponseStreamEvent
         , code :: Text
         , sequence_number :: Natural
         }
+    | ResponseFunctionCallArgumentsDeltaEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseFunctionCallArgumentsDoneEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , name :: Text
+        , arguments :: Text
+        , sequence_number :: Natural
+        }
+    -- Lifecycle
+    | ResponseQueuedEvent
+        { response :: ResponseObject
+        , sequence_number :: Natural
+        }
+    | ResponseIncompleteEvent
+        { response :: ResponseObject
+        , sequence_number :: Natural
+        }
+    -- Reasoning
+    | ResponseReasoningSummaryPartAddedEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , summary_index :: Natural
+        , summary_part :: SummaryPart
+        , sequence_number :: Natural
+        }
+    | ResponseReasoningSummaryPartDoneEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , summary_index :: Natural
+        , summary_part :: SummaryPart
+        , sequence_number :: Natural
+        }
+    | ResponseReasoningSummaryTextDeltaEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , summary_index :: Natural
+        , delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseReasoningSummaryTextDoneEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , summary_index :: Natural
+        , text :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseReasoningTextDeltaEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , content_index :: Natural
+        , delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseReasoningTextDoneEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , content_index :: Natural
+        , text :: Text
+        , sequence_number :: Natural
+        }
+    -- Refusal
+    | ResponseRefusalDeltaEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , content_index :: Natural
+        , delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseRefusalDoneEvent
+        { item_id :: Text
+        , output_index :: Natural
+        , content_index :: Natural
+        , refusal :: Text
+        , sequence_number :: Natural
+        }
+    -- Audio
+    | ResponseAudioDeltaEvent
+        { delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseAudioDoneEvent
+        { sequence_number :: Natural
+        }
+    | ResponseAudioTranscriptDeltaEvent
+        { delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseAudioTranscriptDoneEvent
+        { sequence_number :: Natural
+        }
+    -- Image generation
+    | ResponseImageGenerationCallInProgressEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseImageGenerationCallGeneratingEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseImageGenerationCallCompletedEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseImageGenerationCallPartialImageEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , partial_image_index :: Natural
+        , partial_image_b64 :: Text
+        , sequence_number :: Natural
+        }
+    -- MCP
+    | ResponseMcpCallInProgressEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseMcpCallCompletedEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseMcpCallFailedEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseMcpCallArgumentsDeltaEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseMcpCallArgumentsDoneEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , arguments :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseMcpListToolsInProgressEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseMcpListToolsCompletedEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseMcpListToolsFailedEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , sequence_number :: Natural
+        }
+    -- Custom tool call
+    | ResponseCustomToolCallInputDeltaEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , delta :: Text
+        , sequence_number :: Natural
+        }
+    | ResponseCustomToolCallInputDoneEvent
+        { output_index :: Natural
+        , item_id :: Text
+        , input :: Text
+        , sequence_number :: Natural
+        }
+    -- Unknown / future events
+    | UnknownEvent
+        { unknownEventType :: Text
+        , unknownEventPayload :: Value
+        }
     | ErrorEvent
         { error_code :: Maybe Text
         , error_message :: Text
@@ -801,6 +981,11 @@ responseStreamEventOptions = aesonOptions
         "error_message" -> "message"
         "error_param" -> "param"
         "error_sequence_number" -> "sequence_number"
+        -- Reasoning summary part events use summary_part to avoid type conflict with part :: OutputContent
+        "summary_part" -> "part"
+        -- UnknownEvent fields (not serialized, but needed for completeness)
+        "unknownEventType" -> "type"
+        "unknownEventPayload" -> "payload"
         -- Keep all other fields as-is
         other -> other
     , constructorTagModifier = \s -> case s of
@@ -826,12 +1011,48 @@ responseStreamEventOptions = aesonOptions
         "ResponseCodeInterpreterCallCompletedEvent" -> "response.code_interpreter_call.completed"
         "ResponseCodeInterpreterCallCodeDeltaEvent" -> "response.code_interpreter_call_code.delta"
         "ResponseCodeInterpreterCallCodeDoneEvent" -> "response.code_interpreter_call_code.done"
+        "ResponseFunctionCallArgumentsDeltaEvent" -> "response.function_call_arguments.delta"
+        "ResponseFunctionCallArgumentsDoneEvent" -> "response.function_call_arguments.done"
+        "ResponseQueuedEvent" -> "response.queued"
+        "ResponseIncompleteEvent" -> "response.incomplete"
+        "ResponseReasoningSummaryPartAddedEvent" -> "response.reasoning_summary_part.added"
+        "ResponseReasoningSummaryPartDoneEvent" -> "response.reasoning_summary_part.done"
+        "ResponseReasoningSummaryTextDeltaEvent" -> "response.reasoning_summary_text.delta"
+        "ResponseReasoningSummaryTextDoneEvent" -> "response.reasoning_summary_text.done"
+        "ResponseReasoningTextDeltaEvent" -> "response.reasoning_text.delta"
+        "ResponseReasoningTextDoneEvent" -> "response.reasoning_text.done"
+        "ResponseRefusalDeltaEvent" -> "response.refusal.delta"
+        "ResponseRefusalDoneEvent" -> "response.refusal.done"
+        "ResponseAudioDeltaEvent" -> "response.audio.delta"
+        "ResponseAudioDoneEvent" -> "response.audio.done"
+        "ResponseAudioTranscriptDeltaEvent" -> "response.audio.transcript.delta"
+        "ResponseAudioTranscriptDoneEvent" -> "response.audio.transcript.done"
+        "ResponseImageGenerationCallInProgressEvent" -> "response.image_generation_call.in_progress"
+        "ResponseImageGenerationCallGeneratingEvent" -> "response.image_generation_call.generating"
+        "ResponseImageGenerationCallCompletedEvent" -> "response.image_generation_call.completed"
+        "ResponseImageGenerationCallPartialImageEvent" -> "response.image_generation_call.partial_image"
+        "ResponseMcpCallInProgressEvent" -> "response.mcp_call.in_progress"
+        "ResponseMcpCallCompletedEvent" -> "response.mcp_call.completed"
+        "ResponseMcpCallFailedEvent" -> "response.mcp_call.failed"
+        "ResponseMcpCallArgumentsDeltaEvent" -> "response.mcp_call_arguments.delta"
+        "ResponseMcpCallArgumentsDoneEvent" -> "response.mcp_call_arguments.done"
+        "ResponseMcpListToolsInProgressEvent" -> "response.mcp_list_tools.in_progress"
+        "ResponseMcpListToolsCompletedEvent" -> "response.mcp_list_tools.completed"
+        "ResponseMcpListToolsFailedEvent" -> "response.mcp_list_tools.failed"
+        "ResponseCustomToolCallInputDeltaEvent" -> "response.custom_tool_call_input.delta"
+        "ResponseCustomToolCallInputDoneEvent" -> "response.custom_tool_call_input.done"
         "ErrorEvent" -> "error"
-        _ -> Prelude.error "Unknown ResponseStreamEvent constructor"
+        other -> other
     }
 
 instance FromJSON ResponseStreamEvent where
-    parseJSON = genericParseJSON responseStreamEventOptions
+    parseJSON value =
+        genericParseJSON responseStreamEventOptions value
+            <|> flip (Aeson.withObject "ResponseStreamEvent") value (\o ->
+                    UnknownEvent
+                        <$> o Aeson..: "type"
+                        <*> pure value
+                )
 
 instance ToJSON ResponseStreamEvent where
     toJSON = genericToJSON responseStreamEventOptions
