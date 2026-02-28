@@ -1,3 +1,8 @@
+2.5.1:
+
+- Add 28 missing `ResponseStreamEvent` constructors covering all event types from the OpenAPI spec (lifecycle, reasoning, refusal, audio, image generation, MCP, and custom tool call events).
+- Add `UnknownEvent` fallback constructor that gracefully handles unrecognized event types instead of crashing the parser.
+
 2.5.0:
 
 - **BREAKING (streaming imports):** move chat-completion streaming payload types (`ChatCompletionChunk`, `ChunkChoice`, `Delta`, `ChatCompletionStreamEvent`) from `OpenAI.V1.Chat.Completions` to `OpenAI.V1.Chat.Completions.Stream` to avoid selector ambiguity on `choices`/`usage` in non-streaming imports.
