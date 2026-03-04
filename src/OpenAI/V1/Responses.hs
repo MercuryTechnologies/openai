@@ -41,6 +41,8 @@ module OpenAI.V1.Responses
     , ResponseStreamEvent(..)
     , Tool(..)
     , ResponseObject(..)
+    , ResponseWithMetadata(..)
+    , lookupHeader
     , ResponseUsage(..)
     , InputTokensDetails(..)
     , OutputTokensDetails(..)
@@ -54,6 +56,7 @@ module OpenAI.V1.Responses
 import Control.Applicative ((<|>))
 import Data.Aeson (Object)
 import OpenAI.Prelude hiding (Input(..), input)
+import qualified Data.Text as T
 import OpenAI.V1.AutoOr (AutoOr(..))
 import OpenAI.V1.ListOf (ListOf)
 import OpenAI.V1.Models (Model)
@@ -1277,3 +1280,20 @@ type API =
             :>  "input_items"
             :>  Get '[JSON] (ListOf InputItem)
         )
+
+-- | Body + response headers from an API call.
+data ResponseWithMetadata a = ResponseWithMetadata
+    { body :: a
+    , response_headers :: [(Text, Text)]
+    } deriving stock (Eq, Generic, Show)
+
+-- | Case-insensitive lookup for a response header.
+lookupHeader :: Text -> ResponseWithMetadata a -> Maybe Text
+lookupHeader key ResponseWithMetadata{ response_headers } =
+    foldr select Nothing response_headers
+  where
+    target = T.toLower key
+
+    select (name, value) acc
+        | T.toLower name == target = Just value
+        | otherwise = acc
