@@ -125,8 +125,10 @@ import qualified Control.Exception as Exception
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as SBS
 import qualified Data.ByteString.Char8 as S8
+import qualified Data.CaseInsensitive as CI
 import qualified Data.IORef as IORef
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
 import qualified Network.HTTP.Types.Status as Status
@@ -198,7 +200,7 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
             :<|>  deleteChatKitThread
             :<|>  _listChatKitThreadItems
             )
-      :<|>  (     createResponse
+      :<|>  (     createResponse_
             :<|>  retrieveResponse
             :<|>  cancelResponse
             :<|>  listResponseInputItems_
@@ -314,6 +316,9 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
 
     createTranscription a = createTranscription_ (boundary, a)
     createTranslation a = createTranslation_ (boundary, a)
+    createResponse = createResponse_
+    createResponseWithMetadata =
+        postJSONWithMetadata "/v1/responses"
     createEmbeddings a = toVector (createEmbeddings_ a)
     listFineTuningJobs a b = toVector (listFineTuningJobs_ a b)
     listFineTuningEvents a b c = toVector (listFineTuningEvents_ a b c)
@@ -342,15 +347,26 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
 
     -- Streaming implementation using http-client and SSE parsing
     createResponseStream req onEvent = do
+        createResponseStreamWithMetadata req (\_ -> pure ()) onEvent
+
+    createResponseStreamWithMetadata req onMetadata onEvent = do
         let req' = req{ Responses.stream = Just True }
-        ssePostJSON "/v1/responses" req' onEvent
+        ssePostJSON "/v1/responses" req' onMetadata onEvent
 
     createResponseStreamTyped
         :: CreateResponse
         -> (Either Text Responses.ResponseStreamEvent -> IO ())
         -> IO ()
     createResponseStreamTyped req onEvent =
-        createResponseStream req $ \ev -> case ev of
+        createResponseStreamTypedWithMetadata req (\_ -> pure ()) onEvent
+
+    createResponseStreamTypedWithMetadata
+        :: CreateResponse
+        -> (Responses.ResponseWithMetadata () -> IO ())
+        -> (Either Text Responses.ResponseStreamEvent -> IO ())
+        -> IO ()
+    createResponseStreamTypedWithMetadata req onMetadata onEvent =
+        createResponseStreamWithMetadata req onMetadata $ \ev -> case ev of
             Left err -> onEvent (Left err)
             Right val -> case Aeson.fromJSON val of
                 Aeson.Error msg -> onEvent (Left (Text.pack msg))
@@ -359,7 +375,7 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
     -- Streaming implementation for chat completions
     createChatCompletionStream req onEvent = do
         let req' = req{ Chat.Completions.stream = Just True }
-        ssePostJSON "/v1/chat/completions" req' onEvent
+        ssePostJSON "/v1/chat/completions" req' (\_ -> pure ()) onEvent
 
     createChatCompletionStreamTyped
         :: CreateChatCompletion
@@ -372,12 +388,78 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
                 Aeson.Error msg -> onEvent (Left (Text.pack msg))
                 Aeson.Success e -> onEvent (Right e)
 
+    postJSONWithMetadata
+        :: (ToJSON a, FromJSON b)
+        => String
+        -> a
+        -> IO (Responses.ResponseWithMetadata b)
+    postJSONWithMetadata path body = do
+        let base = Client.baseUrl clientEnv
+        let secure = case Client.baseUrlScheme base of
+                Client.Http -> False
+                Client.Https -> True
+        let host = S8.pack (Client.baseUrlHost base)
+        let port = Client.baseUrlPort base
+        let basePath = Client.baseUrlPath base
+        let fullPath = S8.pack (normalizePath basePath <> path)
+
+        let headers0 =
+                [ ("Authorization", S8.pack (Text.unpack authorization))
+                , ("Accept", "application/json")
+                , ("Content-Type", "application/json")
+                ]
+        let headers1 = case organizationID of
+                Nothing -> headers0
+                Just org -> ("OpenAI-Organization", S8.pack (Text.unpack org)) : headers0
+        let headers = case projectID of
+                Nothing -> headers1
+                Just proj -> ("OpenAI-Project", S8.pack (Text.unpack proj)) : headers1
+
+        let request = HTTP.Client.defaultRequest
+                { HTTP.Client.secure = secure
+                , HTTP.Client.host = host
+                , HTTP.Client.port = port
+                , HTTP.Client.method = "POST"
+                , HTTP.Client.path = fullPath
+                , HTTP.Client.requestHeaders = headers
+                , HTTP.Client.requestBody = HTTP.Client.RequestBodyLBS (Aeson.encode body)
+                , HTTP.Client.responseTimeout = HTTP.Client.responseTimeoutNone
+                }
+
+        HTTP.Client.withResponse request (Client.manager clientEnv) $ \response -> do
+            let responseHeaders = adaptHeaders (HTTP.Client.responseHeaders response)
+            bodyChunks <- HTTP.Client.brConsume (HTTP.Client.responseBody response)
+            let responseBody = SBS.concat bodyChunks
+            let st = HTTP.Client.responseStatus response
+            if not (Status.statusIsSuccessful st)
+                then throwClientError
+                        ( "HTTP error "
+                        <> renderIntegral (Status.statusCode st)
+                        <> " "
+                        <> (Text.pack (S8.unpack (Status.statusMessage st)))
+                        <> (if SBS.null responseBody
+                                then ""
+                                else ": " <> decodeText responseBody)
+                        )
+                else case Aeson.eitherDecodeStrict responseBody of
+                    Left err ->
+                        throwClientError
+                            ( "Failed to decode response JSON: "
+                            <> Text.pack err
+                            )
+                    Right responseBody' ->
+                        pure Responses.ResponseWithMetadata
+                            { Responses.body = responseBody'
+                            , Responses.response_headers = responseHeaders
+                            }
+
     ssePostJSON :: ToJSON a
                 => String
                 -> a
+                -> (Responses.ResponseWithMetadata () -> IO ())
                 -> (Either Text Aeson.Value -> IO ())
                 -> IO ()
-    ssePostJSON path body onEvent = do
+    ssePostJSON path body onMetadata onEvent = do
         let base = Client.baseUrl clientEnv
         let secure = case Client.baseUrlScheme base of
                 Client.Http -> False
@@ -411,6 +493,11 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
                 }
 
         HTTP.Client.withResponse request (Client.manager clientEnv) $ \response -> do
+            onMetadata
+                Responses.ResponseWithMetadata
+                    { Responses.body = ()
+                    , Responses.response_headers = adaptHeaders (HTTP.Client.responseHeaders response)
+                    }
             -- Short-circuit on non-2xx HTTP statuses and surface a single error event
             let st = HTTP.Client.responseStatus response
             if not (Status.statusIsSuccessful st)
@@ -479,9 +566,29 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
         ('/':_) -> p
         _ -> '/':p
 
+    adaptHeaders
+        :: [(CI.CI SBS.ByteString, SBS.ByteString)]
+        -> [(Text, Text)]
+    adaptHeaders = fmap adaptHeader
+
+    adaptHeader (headerName, headerValue) =
+        ( decodeText (CI.original headerName)
+        , decodeText headerValue
+        )
+
+    decodeText bytes =
+        case Text.Encoding.decodeUtf8' bytes of
+            Left _ -> Text.pack (S8.unpack bytes)
+            Right text -> text
+
     stripCR bs = case S8.unsnoc bs of
         Just (initBs, '\r') -> initBs
         _ -> bs
+
+    throwClientError :: Text -> IO a
+    throwClientError message =
+        Exception.throwIO
+            (Client.ConnectionError (Exception.toException (userError (Text.unpack message))))
 
     unsnoc [] = Nothing
     unsnoc xs = Just (init xs, last xs)
@@ -535,13 +642,26 @@ data Methods = Methods
         -> (Either Text Chat.Completions.Stream.ChatCompletionStreamEvent -> IO ())
         -> IO ()
     , createResponse :: CreateResponse -> IO ResponseObject
+    , createResponseWithMetadata
+        :: CreateResponse
+        -> IO (Responses.ResponseWithMetadata ResponseObject)
     , createResponseStream
         :: CreateResponse
+        -> (Either Text Aeson.Value -> IO ())
+        -> IO ()
+    , createResponseStreamWithMetadata
+        :: CreateResponse
+        -> (Responses.ResponseWithMetadata () -> IO ())
         -> (Either Text Aeson.Value -> IO ())
         -> IO ()
     , createEmbeddings :: CreateEmbeddings -> IO (Vector EmbeddingObject)
     , createResponseStreamTyped
         :: CreateResponse
+        -> (Either Text Responses.ResponseStreamEvent -> IO ())
+        -> IO ()
+    , createResponseStreamTypedWithMetadata
+        :: CreateResponse
+        -> (Responses.ResponseWithMetadata () -> IO ())
         -> (Either Text Responses.ResponseStreamEvent -> IO ())
         -> IO ()
     , createFineTuningJob :: CreateFineTuningJob -> IO JobObject
@@ -754,14 +874,14 @@ type API
     =   Header' [ Required, Strict ] "Authorization" Text
     :>  Header' [ Optional, Strict ] "OpenAI-Organization" Text
     :>  Header' [ Optional, Strict ] "OpenAI-Project" Text
-    :>  "v1"
-    :>  (     Audio.API
-        :<|>  Chat.Completions.API
-        :<|>  ChatKit.API
-        :<|>  Responses.API
-        :<|>  Embeddings.API
-        :<|>  FineTuning.Jobs.API
-        :<|>  Batches.API
+      :>  "v1"
+      :>  (     Audio.API
+            :<|>  Chat.Completions.API
+            :<|>  ChatKit.API
+            :<|>  Responses.API
+            :<|>  Embeddings.API
+            :<|>  FineTuning.Jobs.API
+            :<|>  Batches.API
         :<|>  Files.API
         :<|>  Images.API
         :<|>  Uploads.API

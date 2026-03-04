@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               openai
-version:            2.5.1
+version:            2.5.2
 synopsis:           Servant bindings to OpenAI
 description:        This package provides comprehensive and type-safe bindings
                     to OpenAI, providing both a Servant interface and
@@ -30,6 +30,7 @@ library
     build-depends:      base >=4.15.0.0 && < 5
                       , aeson
                       , bytestring
+                      , case-insensitive
                       , containers
                       , filepath
                       , http-api-data
@@ -37,10 +38,10 @@ library
                       , http-client-tls
                       , http-types
                       , servant
-                      , servant-multipart-api
-                      , servant-client
-                      , servant-multipart-client
-                      , text
+                        , servant-multipart-api
+                        , servant-client
+                        , servant-multipart-client
+                        , text
                       , time
                       , unordered-containers
                       , vector

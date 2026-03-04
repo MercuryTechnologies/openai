@@ -10,7 +10,7 @@ import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.KeyMap as KeyMap
 import Control.Exception (SomeException, catch)
 import Data.Foldable (toList)
-import Data.Maybe (listToMaybe)
+import Data.Maybe (isJust, listToMaybe)
 import OpenAI.V1 (Methods(..))
 import OpenAI.V1.Audio.Speech (CreateSpeech(..), Voice(..), _CreateSpeech)
 import OpenAI.V1.Audio.Transcriptions (CreateTranscription(..))
@@ -908,8 +908,8 @@ main = do
 
   let responsesMinimalTest =
         HUnit.testCase "Responses - minimal" do
-          _ <-
-            createResponse
+          responseWithMetadata <-
+            createResponseWithMetadata
               Responses._CreateResponse
                 { Responses.model = chatModel,
                   Responses.input = Just (Responses.Input
@@ -931,6 +931,16 @@ main = do
                   Responses.tools = Nothing,
                   Responses.tool_choice = Nothing
                 }
+
+          let Responses.ResponseObject{ Responses.output = outputItems } =
+                Responses.body responseWithMetadata
+
+          HUnit.assertBool
+            "Expected non-empty response output"
+            (not (null (toList outputItems)))
+          HUnit.assertBool
+            "Expected content-type metadata header"
+            (isJust (Responses.lookupHeader "content-type" responseWithMetadata))
 
           return ()
 
@@ -960,8 +970,10 @@ main = do
                   }
 
           acc <- IORef.newIORef (Text.empty)
+          responseMetadata <- IORef.newIORef Nothing
           done <- Concurrent.newEmptyMVar
 
+          let onMetadata metadata = IORef.writeIORef responseMetadata (Just metadata)
           let onEvent (Left _err) = Concurrent.putMVar done ()
               onEvent (Right ev) = case ev of
                 Responses.ResponseTextDeltaEvent{ Responses.delta = d } ->
@@ -970,11 +982,16 @@ main = do
                   Concurrent.putMVar done ()
                 _ -> pure ()
 
-          createResponseStreamTyped req onEvent
+          createResponseStreamTypedWithMetadata req onMetadata onEvent
 
           _ <- Concurrent.takeMVar done
           text <- IORef.readIORef acc
+          metadata <- IORef.readIORef responseMetadata
           HUnit.assertBool "Expected non-empty streamed text" (not (Text.null text))
+          HUnit.assertBool "Expected streaming response metadata" (isJust metadata)
+          HUnit.assertBool
+            "Expected content-type header in stream metadata"
+            (maybe False (isJust . Responses.lookupHeader "content-type") metadata)
 
           return ()
 

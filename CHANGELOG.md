@@ -1,3 +1,10 @@
+2.5.2:
+
+- Add `ResponseWithMetadata` wrapper and `lookupHeader` helper for accessing raw HTTP response headers from API calls.
+- Add `createResponseWithMetadata` for non-streaming responses with headers.
+- Add `createResponseStreamWithMetadata` and `createResponseStreamTypedWithMetadata` for streaming responses with headers (delivered via callback before events flow).
+- Existing `createResponse`, `createResponseStream`, and `createResponseStreamTyped` remain unchanged.
+
 2.5.1:
 
 - Add 28 missing `ResponseStreamEvent` constructors covering all event types from the OpenAPI spec (lifecycle, reasoning, refusal, audio, image generation, MCP, and custom tool call events).
