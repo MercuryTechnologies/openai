@@ -48,6 +48,8 @@ module OpenAI.V1
     ) where
 
 import Control.Monad (foldM)
+import Control.Monad.IO.Class (liftIO)
+import Data.Foldable (toList)
 import Data.ByteString.Char8 ()
 import Data.Proxy (Proxy(..))
 import OpenAI.Prelude
@@ -124,9 +126,11 @@ import OpenAI.V1.VectorStores.Files
 import qualified Control.Exception as Exception
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as SBS
+import qualified Data.ByteString.Builder as ByteString.Builder
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.CaseInsensitive as CI
 import qualified Data.IORef as IORef
+import qualified Data.Sequence as Sequence
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Client as HTTP.Client
@@ -155,6 +159,8 @@ import qualified OpenAI.V1.VectorStores.FileBatches as VectorStores.FileBatches
 import qualified OpenAI.V1.VectorStores.Files as VectorStores.Files
 import qualified OpenAI.V1.VectorStores.Status as VectorStores.Status
 import qualified Servant.Client as Client
+import qualified Servant.Client.Core.Request as Client.Request
+import qualified Servant.Client.Core.Response as Client.Response
 
 -- | Convenient utility to get a `ClientEnv` for the most common use case
 getClientEnv
@@ -188,6 +194,13 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
   where
     authorization = "Bearer " <> token
 
+    ( createResponseClientM
+      :<|> _
+      :<|> _
+      :<|> _
+      ) =
+        Client.client @ResponsesClientAPI Proxy authorization organizationID projectID
+
     (       (     createSpeech
             :<|>  createTranscription_
             :<|>  createTranslation_
@@ -200,7 +213,7 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
             :<|>  deleteChatKitThread
             :<|>  _listChatKitThreadItems
             )
-      :<|>  (     createResponse_
+      :<|>  (     _
             :<|>  retrieveResponse
             :<|>  cancelResponse
             :<|>  listResponseInputItems_
@@ -316,9 +329,9 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
 
     createTranscription a = createTranscription_ (boundary, a)
     createTranslation a = createTranslation_ (boundary, a)
-    createResponse = createResponse_
-    createResponseWithMetadata =
-        postJSONWithMetadata "/v1/responses"
+    createResponse a = run (createResponseClientM a)
+    createResponseWithMetadata a =
+        runWithMetadata (createResponseClientM a)
     createEmbeddings a = toVector (createEmbeddings_ a)
     listFineTuningJobs a b = toVector (listFineTuningJobs_ a b)
     listFineTuningEvents a b c = toVector (listFineTuningEvents_ a b c)
@@ -388,70 +401,33 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
                 Aeson.Error msg -> onEvent (Left (Text.pack msg))
                 Aeson.Success e -> onEvent (Right e)
 
-    postJSONWithMetadata
-        :: (ToJSON a, FromJSON b)
-        => String
-        -> a
-        -> IO (Responses.ResponseWithMetadata b)
-    postJSONWithMetadata path body = do
-        let base = Client.baseUrl clientEnv
-        let secure = case Client.baseUrlScheme base of
-                Client.Http -> False
-                Client.Https -> True
-        let host = S8.pack (Client.baseUrlHost base)
-        let port = Client.baseUrlPort base
-        let basePath = Client.baseUrlPath base
-        let fullPath = S8.pack (normalizePath basePath <> path)
+    runWithMetadata :: Client.ClientM a -> IO (Responses.ResponseWithMetadata a)
+    runWithMetadata clientM = do
+        responseHeadersRef <- IORef.newIORef []
+        let existingMiddleware = Client.middleware clientEnv
+        let captureResponseHeaders app request = do
+                response <- app request
+                liftIO $
+                    IORef.writeIORef
+                        responseHeadersRef
+                        (adaptHeaders (toList (Client.Response.responseHeaders response)))
+                pure response
+        let clientEnvWithMetadata =
+                clientEnv
+                    { Client.middleware =
+                        \app ->
+                            captureResponseHeaders (existingMiddleware app)
+                    }
 
-        let headers0 =
-                [ ("Authorization", S8.pack (Text.unpack authorization))
-                , ("Accept", "application/json")
-                , ("Content-Type", "application/json")
-                ]
-        let headers1 = case organizationID of
-                Nothing -> headers0
-                Just org -> ("OpenAI-Organization", S8.pack (Text.unpack org)) : headers0
-        let headers = case projectID of
-                Nothing -> headers1
-                Just proj -> ("OpenAI-Project", S8.pack (Text.unpack proj)) : headers1
-
-        let request = HTTP.Client.defaultRequest
-                { HTTP.Client.secure = secure
-                , HTTP.Client.host = host
-                , HTTP.Client.port = port
-                , HTTP.Client.method = "POST"
-                , HTTP.Client.path = fullPath
-                , HTTP.Client.requestHeaders = headers
-                , HTTP.Client.requestBody = HTTP.Client.RequestBodyLBS (Aeson.encode body)
-                , HTTP.Client.responseTimeout = HTTP.Client.responseTimeoutNone
-                }
-
-        HTTP.Client.withResponse request (Client.manager clientEnv) $ \response -> do
-            let responseHeaders = adaptHeaders (HTTP.Client.responseHeaders response)
-            bodyChunks <- HTTP.Client.brConsume (HTTP.Client.responseBody response)
-            let responseBody = SBS.concat bodyChunks
-            let st = HTTP.Client.responseStatus response
-            if not (Status.statusIsSuccessful st)
-                then throwClientError
-                        ( "HTTP error "
-                        <> renderIntegral (Status.statusCode st)
-                        <> " "
-                        <> (Text.pack (S8.unpack (Status.statusMessage st)))
-                        <> (if SBS.null responseBody
-                                then ""
-                                else ": " <> decodeText responseBody)
-                        )
-                else case Aeson.eitherDecodeStrict responseBody of
-                    Left err ->
-                        throwClientError
-                            ( "Failed to decode response JSON: "
-                            <> Text.pack err
-                            )
-                    Right responseBody' ->
-                        pure Responses.ResponseWithMetadata
-                            { Responses.body = responseBody'
-                            , Responses.response_headers = responseHeaders
-                            }
+        result <- Client.runClientM clientM clientEnvWithMetadata
+        case result of
+            Left exception -> Exception.throwIO exception
+            Right responseBody -> do
+                responseHeaders <- IORef.readIORef responseHeadersRef
+                pure Responses.ResponseWithMetadata
+                    { Responses.body = responseBody
+                    , Responses.response_headers = responseHeaders
+                    }
 
     ssePostJSON :: ToJSON a
                 => String
@@ -460,19 +436,9 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
                 -> (Either Text Aeson.Value -> IO ())
                 -> IO ()
     ssePostJSON path body onMetadata onEvent = do
-        let base = Client.baseUrl clientEnv
-        let secure = case Client.baseUrlScheme base of
-                Client.Http -> False
-                Client.Https -> True
-        let host = S8.pack (Client.baseUrlHost base)
-        let port = Client.baseUrlPort base
-        let basePath = Client.baseUrlPath base
-        let fullPath = S8.pack (normalizePath basePath <> path)
-
         let headers0 =
                 [ ("Authorization", S8.pack (Text.unpack authorization))
                 , ("Accept", "text/event-stream")
-                , ("Content-Type", "application/json")
                 ]
         let headers1 = case organizationID of
                 Nothing -> headers0
@@ -480,86 +446,119 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
         let headers = case projectID of
                 Nothing -> headers1
                 Just proj -> ("OpenAI-Project", S8.pack (Text.unpack proj)) : headers1
-
-        let request = HTTP.Client.defaultRequest
-                { HTTP.Client.secure = secure
-                , HTTP.Client.host = host
-                , HTTP.Client.port = port
-                , HTTP.Client.method = "POST"
-                , HTTP.Client.path = fullPath
-                , HTTP.Client.requestHeaders = headers
-                , HTTP.Client.requestBody = HTTP.Client.RequestBodyLBS (Aeson.encode body)
-                , HTTP.Client.responseTimeout = HTTP.Client.responseTimeoutNone
-                }
-
-        HTTP.Client.withResponse request (Client.manager clientEnv) $ \response -> do
-            onMetadata
-                Responses.ResponseWithMetadata
-                    { Responses.body = ()
-                    , Responses.response_headers = adaptHeaders (HTTP.Client.responseHeaders response)
+        let request =
+                Client.Request.defaultRequest
+                    { Client.Request.requestPath =
+                        ByteString.Builder.byteString (S8.pack (normalizePath path))
+                    , Client.Request.requestMethod = "POST"
+                    , Client.Request.requestBody =
+                        Just
+                            ( Client.Request.RequestBodyLBS (Aeson.encode body)
+                            , contentType (Proxy @JSON)
+                            )
+                    , Client.Request.requestHeaders = Sequence.fromList headers
                     }
-            -- Short-circuit on non-2xx HTTP statuses and surface a single error event
-            let st = HTTP.Client.responseStatus response
-            if not (Status.statusIsSuccessful st)
-                then do
-                    bodyChunks <- HTTP.Client.brConsume (HTTP.Client.responseBody response)
-                    let errBody = SBS.concat bodyChunks
-                    let msg =
-                            "HTTP error "
-                            <> renderIntegral (Status.statusCode st)
-                            <> " "
-                            <> (Text.pack (S8.unpack (Status.statusMessage st)))
-                            <> (if SBS.null errBody then "" else ": " <> Text.pack (S8.unpack errBody))
-                    onEvent (Left msg)
-                else do
-                    let br = HTTP.Client.responseBody response
-                    lineBufRef <- IORef.newIORef SBS.empty
-                    eventBufRef <- IORef.newIORef ([] :: [SBS.ByteString])
-                    let flushEvent = do
-                            es <- IORef.atomicModifyIORef eventBufRef (\buf -> ([], reverse buf))
-                            if null es
-                                then pure False
-                                else do
-                                    let payload = S8.concat es
-                                    if payload == "[DONE]"
-                                        then pure True
-                                        else case (Aeson.eitherDecodeStrict payload :: Either String Aeson.Value) of
-                                            Left err -> onEvent (Left (Text.pack err)) >> pure False
-                                            Right val -> onEvent (Right val) >> pure False
 
-                    -- Note: SSE frames can include fields like "event:" and others.
-                    -- We currently ignore all non-"data:" fields and only buffer
-                    -- "data:" lines; an empty line flushes a complete event.
-                    let handleLine line = do
-                            let l = stripCR line
-                            if S8.null l
-                                then flushEvent
-                                else if "data:" `S8.isPrefixOf` l
-                                    then do
-                                        let d = S8.dropWhile (==' ') (S8.drop 5 l)
-                                        IORef.modifyIORef' eventBufRef (d:)
-                                        pure False
-                                    else pure False
+        let app :: Client.Request.Request -> Client.ClientM Client.Response.Response
+            app servantRequest = do
+                httpRequest0 <- liftIO $
+                    Client.makeClientRequest
+                        clientEnv
+                        (Client.baseUrl clientEnv)
+                        servantRequest
+                let httpRequest =
+                        httpRequest0
+                            { HTTP.Client.responseTimeout =
+                                HTTP.Client.responseTimeoutNone
+                            }
+                liftIO $
+                    HTTP.Client.withResponse httpRequest (Client.manager clientEnv) $ \response -> do
+                        onMetadata
+                            Responses.ResponseWithMetadata
+                                { Responses.body = ()
+                                , Responses.response_headers =
+                                    adaptHeaders (HTTP.Client.responseHeaders response)
+                                }
+                        -- Short-circuit on non-2xx HTTP statuses and surface a single error event
+                        let st = HTTP.Client.responseStatus response
+                        if not (Status.statusIsSuccessful st)
+                            then do
+                                bodyChunks <- HTTP.Client.brConsume (HTTP.Client.responseBody response)
+                                let errBody = SBS.concat bodyChunks
+                                let msg =
+                                        "HTTP error "
+                                        <> renderIntegral (Status.statusCode st)
+                                        <> " "
+                                        <> (Text.pack (S8.unpack (Status.statusMessage st)))
+                                        <> (if SBS.null errBody then "" else ": " <> Text.pack (S8.unpack errBody))
+                                onEvent (Left msg)
+                            else do
+                                let br = HTTP.Client.responseBody response
+                                lineBufRef <- IORef.newIORef SBS.empty
+                                eventBufRef <- IORef.newIORef ([] :: [SBS.ByteString])
+                                let flushEvent = do
+                                        es <- IORef.atomicModifyIORef eventBufRef (\buf -> ([], reverse buf))
+                                        if null es
+                                            then pure False
+                                            else do
+                                                let payload = S8.concat es
+                                                if payload == "[DONE]"
+                                                    then pure True
+                                                    else case (Aeson.eitherDecodeStrict payload :: Either String Aeson.Value) of
+                                                        Left err -> onEvent (Left (Text.pack err)) >> pure False
+                                                        Right val -> onEvent (Right val) >> pure False
 
-                    let loop = do
-                            chunk <- HTTP.Client.brRead br
-                            if SBS.null chunk
-                                then do
-                                    -- flush any pending event at EOF
-                                    _ <- flushEvent
-                                    pure ()
-                                else do
-                                    prev <- IORef.readIORef lineBufRef
-                                    let combined = prev <> chunk
-                                    let ls = S8.split '\n' combined
-                                    case unsnoc ls of
-                                        Nothing -> loop
-                                        Just (completeLines, lastLine) -> do
-                                            IORef.writeIORef lineBufRef lastLine
-                                            stop <- foldM (\acc ln -> if acc then pure True else handleLine ln) False completeLines
-                                            if stop then pure () else loop
+                                -- Note: SSE frames can include fields like "event:" and others.
+                                -- We currently ignore all non-"data:" fields and only buffer
+                                -- "data:" lines; an empty line flushes a complete event.
+                                let handleLine line = do
+                                        let l = stripCR line
+                                        if S8.null l
+                                            then flushEvent
+                                            else if "data:" `S8.isPrefixOf` l
+                                                then do
+                                                    let d = S8.dropWhile (==' ') (S8.drop 5 l)
+                                                    IORef.modifyIORef' eventBufRef (d:)
+                                                    pure False
+                                                else pure False
 
-                    loop
+                                let loop = do
+                                        chunk <- HTTP.Client.brRead br
+                                        if SBS.null chunk
+                                            then do
+                                                -- flush any pending event at EOF
+                                                _ <- flushEvent
+                                                pure ()
+                                            else do
+                                                prev <- IORef.readIORef lineBufRef
+                                                let combined = prev <> chunk
+                                                let ls = S8.split '\n' combined
+                                                case unsnoc ls of
+                                                    Nothing -> loop
+                                                    Just (completeLines, lastLine) -> do
+                                                        IORef.writeIORef lineBufRef lastLine
+                                                        stop <- foldM (\acc ln -> if acc then pure True else handleLine ln) False completeLines
+                                                        if stop then pure () else loop
+
+                                loop
+
+                        pure Client.Response.Response
+                            { Client.Response.responseStatusCode =
+                                HTTP.Client.responseStatus response
+                            , Client.Response.responseHeaders =
+                                Sequence.fromList (HTTP.Client.responseHeaders response)
+                            , Client.Response.responseHttpVersion =
+                                HTTP.Client.responseVersion response
+                            , Client.Response.responseBody = mempty
+                            }
+
+        result <-
+            Client.runClientM
+                ((Client.middleware clientEnv app) request)
+                clientEnv
+        case result of
+            Left exception -> Exception.throwIO exception
+            Right _ -> pure ()
 
     normalizePath p = case p of
         "" -> ""
@@ -585,13 +584,15 @@ makeMethods clientEnv token organizationID projectID = Methods{..}
         Just (initBs, '\r') -> initBs
         _ -> bs
 
-    throwClientError :: Text -> IO a
-    throwClientError message =
-        Exception.throwIO
-            (Client.ConnectionError (Exception.toException (userError (Text.unpack message))))
-
     unsnoc [] = Nothing
     unsnoc xs = Just (init xs, last xs)
+
+type ResponsesClientAPI
+    = Header' [ Required, Strict ] "Authorization" Text
+    :> Header' [ Optional, Strict ] "OpenAI-Organization" Text
+    :> Header' [ Optional, Strict ] "OpenAI-Project" Text
+    :> "v1"
+    :> Responses.API
 
 -- | Hard-coded boundary to simplify the user-experience
 --

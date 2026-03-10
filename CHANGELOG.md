@@ -1,3 +1,7 @@
+2.5.3:
+
+- Fix streaming Responses and chat-completions requests so caller-injected headers added via `ClientEnv.middleware` are preserved on the wire.
+
 2.5.2:
 
 - Add `ResponseWithMetadata` wrapper and `lookupHeader` helper for accessing raw HTTP response headers from API calls.
