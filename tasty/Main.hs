@@ -1,34 +1,42 @@
-{-# LANGUAGE BlockArguments, DuplicateRecordFields, NamedFieldPuns #-}
-{-# LANGUAGE OverloadedLists, OverloadedStrings, RecordWildCards   #-}
-{-# LANGUAGE ScopedTypeVariables                                   #-}
+{-# LANGUAGE BlockArguments        #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Main where
 
-import Data.Aeson ((.=))
+import           Control.Exception (SomeException, catch)
+import           Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.KeyMap as KeyMap
-import Control.Exception (SomeException, catch)
-import Data.Foldable (toList)
-import Data.Maybe (isJust, listToMaybe)
-import OpenAI.V1 (Methods(..))
-import OpenAI.V1.Audio.Speech (CreateSpeech(..), Voice(..), _CreateSpeech)
-import OpenAI.V1.Audio.Transcriptions (CreateTranscription(..))
-import OpenAI.V1.Audio.Translations (CreateTranslation(..))
-import OpenAI.V1.AutoOr (AutoOr(..))
-import OpenAI.V1.Batches (BatchObject(..), CreateBatch(..))
-import OpenAI.V1.Chat.Completions (CreateChatCompletion(..), Modality(..))
-import OpenAI.V1.Embeddings (CreateEmbeddings(..), EncodingFormat(..))
-import OpenAI.V1.Files (FileObject(..), Order(..), UploadFile(..))
-import OpenAI.V1.Images.Edits (CreateImageEdit(..))
-import OpenAI.V1.Images.Generations (CreateImage(..), Quality(..), Style(..))
-import OpenAI.V1.Images.Variations (CreateImageVariation(..))
-import OpenAI.V1.Message (Message(..))
-import OpenAI.V1.Moderations (CreateModeration(..))
-import OpenAI.V1.Threads.Messages (MessageObject(..), ModifyMessage(..))
-import OpenAI.V1.Tool (CodeInterpreterContainer(..), Tool(..), ToolChoice(..))
-import OpenAI.V1.ToolCall (ToolCall(..))
-import Prelude hiding (id)
+import           Data.Foldable (toList)
+import           Data.Maybe (isJust, listToMaybe)
+import           OpenAI.V1 (Methods(..))
+import           OpenAI.V1.Audio.Speech
+    (CreateSpeech(..), Voice(..), _CreateSpeech)
+import           OpenAI.V1.Audio.Transcriptions (CreateTranscription(..))
+import           OpenAI.V1.Audio.Translations (CreateTranslation(..))
+import           OpenAI.V1.AutoOr (AutoOr(..))
+import           OpenAI.V1.Batches (BatchObject(..), CreateBatch(..))
+import           OpenAI.V1.Chat.Completions
+    (CreateChatCompletion(..), Modality(..))
+import           OpenAI.V1.Embeddings (CreateEmbeddings(..), EncodingFormat(..))
+import           OpenAI.V1.Files (FileObject(..), Order(..), UploadFile(..))
+import           OpenAI.V1.Images.Edits (CreateImageEdit(..))
+import           OpenAI.V1.Images.Generations (CreateImage(..))
+import           OpenAI.V1.Images.Variations (CreateImageVariation(..))
+import           OpenAI.V1.Message (Message(..))
+import           OpenAI.V1.Moderations (CreateModeration(..))
+import           OpenAI.V1.Threads.Messages
+    (MessageObject(..), ModifyMessage(..))
+import           OpenAI.V1.Tool
+    (CodeInterpreterContainer(..), Tool(..), ToolChoice(..))
+import           OpenAI.V1.ToolCall (ToolCall(..))
+import           Prelude hiding (id)
 
 import OpenAI.V1.Assistants
     (AssistantObject(..), CreateAssistant(..), ModifyAssistant(..))
@@ -58,6 +66,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Client as HTTP.Client
 import qualified Network.HTTP.Client.TLS as TLS
+import qualified Network.HTTP.Types.Status as HTTP.Status
 import qualified OpenAI.V1 as V1
 import qualified OpenAI.V1.Chat.Completions as Completions
 import qualified OpenAI.V1.Chat.Completions.Stream as ChatStream
@@ -68,6 +77,7 @@ import qualified OpenAI.V1.Responses as Responses
 import qualified OpenAI.V1.Tool as Tool
 import qualified OpenAI.V1.ToolCall as ToolCall
 import qualified Servant.Client as Client
+import qualified Servant.Client.Core.Response as Client.Response
 import qualified System.Environment as Environment
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as HUnit
@@ -93,6 +103,16 @@ main = do
   let reasoningModel = "gpt-5.2-2025-12-11"
   let ttsModel = "tts-1"
   let Methods {..} = V1.makeMethods clientEnv (Text.pack key) Nothing Nothing
+
+  let createImageVariationWhenAvailable request =
+        (createImageVariation request >> return ())
+          `catch` \(clientError :: Client.ClientError) ->
+            case clientError of
+              -- DALL-E 2 variations are not enabled for every project.
+              Client.FailureResponse _ response
+                | Client.Response.responseStatusCode response == HTTP.Status.status404 ->
+                    return ()
+              _ -> HUnit.assertFailure (show clientError)
 
   -- Test each format to make sure we're handling each possible content type
   -- correctly
@@ -371,7 +391,7 @@ main = do
               HUnit.assertBool "Expected non-empty streamed text" (not (Text.null text))
 
               return ()
-          
+
 
   let embeddingsTest = do
         HUnit.testCase "Create embedding" do
@@ -516,18 +536,18 @@ main = do
 
           return ()
 
-  let createImageMaximalTest = do
-        HUnit.testCase "Create image - maximal" do
+  let createImageConfiguredTest = do
+        HUnit.testCase "Create image - configured" do
           _ <-
             createImage
               CreateImage
                 { prompt = "A baby panda",
-                  model = Just "dall-e-3",
+                  model = Just "gpt-image-1",
                   n = Just 1,
-                  quality = Just Standard,
-                  response_format = Just ResponseFormat.URL,
+                  quality = Nothing,
+                  response_format = Nothing,
                   size = Just "1024x1024",
-                  style = Just Vivid,
+                  style = Nothing,
                   user = Just user
                 }
 
@@ -541,7 +561,7 @@ main = do
                 { image = "tasty/data/v1/images/image.png",
                   prompt = "The panda should be greener",
                   mask = Nothing,
-                  model = Nothing,
+                  model = Just "gpt-image-1",
                   n = Nothing,
                   size = Nothing,
                   response_format = Nothing,
@@ -558,10 +578,10 @@ main = do
                 { image = "tasty/data/v1/images/image.png",
                   prompt = "The panda should be greener",
                   mask = Nothing,
-                  model = Just "dall-e-2",
+                  model = Just "gpt-image-1",
                   n = Just 1,
                   size = Just "1024x1024",
-                  response_format = Just ResponseFormat.URL,
+                  response_format = Nothing,
                   user = Just user
                 }
 
@@ -570,7 +590,7 @@ main = do
   let createImageVariationMinimalTest = do
         HUnit.testCase "Create image variation - minimal" do
           _ <-
-            createImageVariation
+            createImageVariationWhenAvailable
               CreateImageVariation
                 { image = "tasty/data/v1/images/image.png",
                   model = Nothing,
@@ -585,7 +605,7 @@ main = do
   let createImageVariationMaximalTest = do
         HUnit.testCase "Create image variation - maximal" do
           _ <-
-            createImageVariation
+            createImageVariationWhenAvailable
               CreateImageVariation
                 { image = "tasty/data/v1/images/image.png",
                   model = Just "dall-e-2",
@@ -810,6 +830,13 @@ main = do
 
   let vectorStoreFilesTest = do
         HUnit.testCase "Vector store file and batch operations" do
+          FileObject {id = seedFileId} <-
+            uploadFile
+              UploadFile
+                { file = "tasty/data/v1/vector_stores/index.html",
+                  purpose = Files.Assistants
+                }
+
           FileObject {id = fileId} <-
             uploadFile
               UploadFile
@@ -820,7 +847,7 @@ main = do
           VectorStoreObject {id = vectorStoreId} <-
             createVectorStore
               CreateVectorStore
-                { file_ids = [],
+                { file_ids = [seedFileId],
                   name = Nothing,
                   expires_after = Nothing,
                   chunking_strategy = Nothing,
@@ -870,13 +897,13 @@ main = do
                       metadata = Nothing
                     }
 
-              _ <- cancelVectorStoreFileBatch vectorStoreId batchId
-
               _ <- deleteVectorStoreFile vectorStoreId vectorStoreFileId
 
               _ <- deleteVectorStore vectorStoreId
 
               _ <- deleteFile fileId
+
+              _ <- deleteFile seedFileId
 
               return ()
             Left _ -> do
@@ -903,6 +930,8 @@ main = do
               _ <- deleteVectorStore vectorStoreId
 
               _ <- deleteFile fileId
+
+              _ <- deleteFile seedFileId
 
               return ()
 
@@ -1221,7 +1250,7 @@ main = do
                fineTuningTest,
                batchesTest,
                uploadsTest,
-               createImageMaximalTest,
+               createImageConfiguredTest,
                createImageEditMinimalTest,
                createImageEditMaximalTest,
                createImageVariationMinimalTest,

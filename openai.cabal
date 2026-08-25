@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               openai
-version:            2.5.3
+version:            2.5.4
 synopsis:           Servant bindings to OpenAI
 description:        This package provides comprehensive and type-safe bindings
                     to OpenAI, providing both a Servant interface and
@@ -117,8 +117,10 @@ test-suite tasty
                     , aeson
                     , http-client
                     , http-client-tls
+                    , http-types
                     , openai
                     , servant-client
+                    , servant-client-core
                     , tasty
                     , tasty-hunit
                     , text
