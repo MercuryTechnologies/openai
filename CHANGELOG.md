@@ -1,3 +1,7 @@
+2.5.4:
+
+- Add `ReasoningEffort_None` support to chat completions, serialized as `"none"`.
+
 2.5.3:
 
 - Fix streaming Responses and chat-completions requests so caller-injected headers added via `ClientEnv.middleware` are preserved on the wire.
